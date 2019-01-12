@@ -34,7 +34,7 @@ describe('Calculate prime numbers an agent', function() {
 			})
 	);
 
-	it.only('should calculate prime numbers using PM2', ()=>
+	it('should calculate prime numbers using PM2', ()=>
 		agents.run('primes', {limit: 1000}, {runner: 'pm2'})
 			.then(result => {
 				expect(result).to.be.an('array');
