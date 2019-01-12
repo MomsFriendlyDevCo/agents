@@ -1,0 +1,256 @@
+#!/usr/bin/node
+
+/**
+* Run an agent by its ID
+* Usage: run-agent <agent-id>
+*      : AGENT=<agent-id> run-agent
+*
+* @param {string} [process.env.AGENT] The ID of the agent to run
+* @param {string} [process.env.AGENT_SETTINGS] JSON encoded object to pass to the agent to process
+* @param {string} [process.env.AGENT_LAMBDA] If set the container is assumed to be a lambda process, all safeguards are removed and maximum resources are consumed
+*/
+
+
+var _ = require('lodash');
+var Agents = require('.');
+var agents; // Initialized version of the agents singleton
+var colors = require('chalk');
+var dump = require('dumper.js').dump;
+var fs = require('fs');
+var os = require('os');
+var spawn = require('child_process').spawn;
+var program = require('commander');
+var promisify = require('util').promisify;
+var Table = require('cli-table3');
+var timestring = require('timestring');
+var util = require('util');
+var url = require('url');
+
+program
+	.version(require('./package.json').version)
+	.usage('[agent-id]')
+	.option('-l, --list', 'List all available agents')
+	.option('-e, --enclose', 'Dont return errors, instead wrap the error inside the return value (implied when using the env AGENT)')
+	.option('-r, --runner [inline|aws|pm2]', 'What runner to use with the agent')
+	.option('-c, --cache [filesystem|redis...]', 'What caching method to force')
+	.option('-o, --options <key=val>', 'Specify agent options in CSV + dotted notation')
+	.option('-n, --nice [number]', 'Set nice priority of the process (default 10)')
+	.option('-s, --settings [json]', 'Provide settings to the agent')
+	.option('-d, --debug', 'Debugging convenience mode (imples `-pv -m inline -c memory`)')
+	.option('-p, --print', 'Output the result of the agent to STDOUT')
+	.option('-r, --pretty', 'Pretty print the output')
+	.option('-v, --verbose', 'Be verbose')
+	.option('--max-time [limit]', 'Set the maximum cpu-time as a parsable timestring (default: "15m")')
+	.option('--max-ram [limit]', 'Set the maximum RAM size in bytes (default: ~12gb)')
+	.option('--max-procs [limit]', 'Set the maximum number of spawned processes (default: 1024)')
+	.option('--max-files [limit]', 'Set the maximum number of files a process can open (default: 50)')
+	.parse(process.argv)
+
+
+Promise.resolve()
+	// Run in list mode (if --list) {{{
+	.then(()=> {
+		if (!program.list) return;
+
+		return Promise.resolve()
+			.then(()=> agents = new Agents({autoInstall: false}))
+			.then(()=> agents.init())
+			.then(()=> {
+				var table = new Table({
+					head: ['Agent ID', 'Timing', 'Expires', 'Data?', 'Show?', 'Clear on build?', 'Methods'],
+					chars: {'mid': '', 'left-mid': '', 'mid-mid': '', 'right-mid': ''},
+				});
+
+				if (_.size(agents._agents)) {
+					_(agents._agents)
+						.keys()
+						.sort()
+						.forEach(id => {
+							table.push([
+								id,
+								agents._agents[id].timing || '',
+								agents._agents[id].expires || '',
+								agents._agents[id].hasReturn ? 'X' : '',
+								agents._agents[id].show ? 'X' : '',
+								agents._agents[id].clearOnBuild ? 'X' : '',
+								agents._agents[id].runners.join(', '),
+							]);
+						});
+
+					console.log(table.toString());
+				} else {
+					console.log('No agents found');
+				}
+			})
+			.then(()=> { throw new Error('QUIT') })
+	})
+	// }}}
+	// Process arguments / environment variables {{{
+	.then(()=> {
+		_.defaults(program, {
+			maxTime: timestring(program.time || process.env.AGENT_TIMELIMIT || '15m'),
+			maxProcs: 4096,
+			maxFiles: 100,
+		});
+
+		if (!program.args.length && process.env.AGENT) { // No args and has ENV `AGENT`
+			program.agent = process.env.AGENT;
+
+			// Enable various inline options:
+			colors.enabled = true;
+			_.defaults(program, {
+				runner: 'inline',
+				nice: 10,
+				verbose: 10,
+			});
+		} else if (program.args.length == 1) {
+			program.agent = program.args.pop();
+		} else if (program.args.length > 1) {
+			throw new Error('Only one agent can be run at a time');
+		} else {
+			throw new Error('No agent-id given!');
+		}
+
+		if (_.isUndefined(program.maxRam)) {
+			program.maxRam = 1024 * 1024 * 1024 * 12; // 12gb
+		} else {
+			program.maxRam = parseInt(program.maxRam);
+			if (isNaN(program.maxRam)) throw new Error('Invalid maximum RAM - must be a number of bytes');
+		}
+
+		if (!program.settings && process.env.AGENT_SETTINGS) {
+			program.settings = JSON.parse(process.env.AGENT_SETTINGS);
+		} else if (program.settings) {
+			program.settings = JSON.parse(program.settings);
+		} else if (program.options && _.isString(program.options)) {
+			program.settings = {};
+			program.options.split(/\s*,\s*/).forEach(setting => {
+				var [, key, val] = /^(.+?)=(.*)$/.exec(setting) || [];
+				_.set(program.settings, key, val);
+			});
+		} else if (!program.settings) {
+			program.settings = {};
+		}
+
+		if (process.env.AGENT_LAMBDA) {
+			_.defaults(program, {
+				runner: 'inline',
+				nice: 0,
+				maxTime: 0,
+				maxRam: 0,
+				maxProcs: 0,
+				maxFiles: 0,
+			});
+		}
+
+		if (program.debug) {
+			_.defaults(program, {
+				runner: 'inline',
+				print: true,
+				verbose: 2,
+			});
+		}
+	})
+	// }}}
+	// Set the nice level and other limits {{{
+	.then(()=> Promise.all([
+		// Set the nice level {{{
+		new Promise(resolve => {
+			if (!program.nice) return resolve();
+			console.log(colors.blue('[agents]'), 'Switching process', colors.cyan(`PID #${process.pid}`), 'niceness to', colors.cyan(program.nice || 10));
+			if (_.isFunction(os.setPriority)) {
+				os.setPriority(process.nice || 10);
+			} else {
+				console.log(colors.blue('[agents]'), colors.yellow('WARNING'), 'Node', colors.cyan('>10.10.x'), 'required to set prirority level. Current version', colors.cyan(process.version), '- skipped');
+			}
+			resolve();
+		}),
+		// }}}
+		// Set the time limit {{{
+		new Promise(resolve => {
+			var args = [];
+			var limits = [];
+
+			if (program.maxTime > 0) {
+				args.push(`--cpu=${program.maxTime}`);
+				limits.push('CPU time=' + colors.cyan(program.maxTime));
+			}
+			if (program.maxRam > 0) {
+				args.push(`--data=${program.maxRam}`);
+				limits.push('RAM=' + colors.cyan(program.maxRam));
+			}
+			if (program.maxProcs > 0) {
+				args.push(`--nproc=${program.maxProcs}`);
+				limits.push('Sub procs=' + colors.cyan(program.maxProcs));
+			}
+			if (program.maxFiles > 0) {
+				args.push(`--nofile=${program.maxFiles}`);
+				limits.push('Files=' + colors.cyan(program.maxFiles));
+			}
+
+			if (!args.length) return resolve(); // Nothing to do
+
+			console.log(colors.blue('[agents]'), 'Setting process', colors.cyan(`PID #${process.pid}`), 'limits:', limits.join(', '))
+			spawn('prlimit', ['--pid', process.pid].concat(args), {stdio: 'inherit'})
+				.on('error', err => {
+					console.log(colors.blue('[agents]'), colors.yellow('WARNING'), '`prlimits` returned error', colors.red(err));
+					resolve();
+				})
+				.on('close', code => {
+					if (code != 0) console.log(colors.blue('[agents]'), colors.yellow('WARNING'), '`prlimits` exited with code', colors.red(code));
+					resolve();
+				});
+		}),
+		// }}}
+	]))
+	// }}}
+	// Setup the agents module {{{
+	.then(()=> {
+		agents = new Agents({
+			autoInstall: false,
+			cache: program.cache ? {modules: [program.cache], calculate: ()=> program.cache} : undefined,
+			runner: program.runner ? {modules: [program.runner], calculate: ()=> program.runner} : undefined,
+		});
+		return agents.init();
+	})
+	.then(()=> {
+		if (!agents.has(program.agent)) throw new Error(`Invalid agent-id: "${program.agent}"`);
+	})
+	// }}}
+	// Run the agent {{{
+	.then(()=> agents.createSession(program.agent, program.settings))
+	.then(session => {
+		if (program.verbose) {
+			console.log(colors.blue('[agents]'), 'Going to run the agent', colors.cyan(session.agent));
+			console.log(colors.blue('[agents]'), '... with settings:', util.inspect(session.agentSettings, {depth: null, colors: true}))
+			console.log(colors.blue('[agents]'), '... using the',  colors.cyan(session.runner), 'runner');
+			console.log(colors.blue('[agents]'), '... via the', colors.cyan(session.cache), 'cacher');
+			console.log(colors.blue('[agents]'), '... and saving as the cache key', colors.cyan(session.cacheKey));
+		}
+		return session;
+	})
+	.then(session => agents.run(session))
+	// }}}
+	// Output the result (if --print || --output) {{{
+	.then(result => {
+		if (program.print) {
+			console.log(colors.bold.blue('RESULT:'));
+			dump(result);
+		}
+	})
+	// }}}
+	// Flush cache {{{
+	.then(()=> agents.destroy())
+	// }}}
+	// End {{{
+	.catch(e => {
+		if (e.toString() == 'Error: QUIT') return process.exit(0); // Exit quietly without error
+		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent', colors.cyan(program.agent));
+		console.log(e);
+		process.exit(1);
+	})
+	.then(()=> {
+		console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
+		process.exit(0);
+	})
+	// }}}
