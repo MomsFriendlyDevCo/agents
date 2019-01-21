@@ -274,12 +274,11 @@ function Agents(options) {
 	* @returns {Defer} A deferred promise
 	*/
 	agents.createDefer = function() {
-		var defer = {
-			promise: new Promise((resolve, reject) => {
-				defer.resolve = resolve;
-				defer.reject = reject;
-			}),
-		};
+		var defer = {};
+		defer.promise = new Promise((resolve, reject) => {
+			defer.resolve = resolve;
+			defer.reject = reject;
+		});
 		return defer;
 	};
 
@@ -312,6 +311,7 @@ function Agents(options) {
 				startTime: Date.now(),
 				worker: agents._agents[id],
 				settings: {...agents.settings, ...settings},
+				defer: agents.createDefer(),
 			})
 			// }}}
 			// Determine runner {{{
@@ -428,6 +428,7 @@ function Agents(options) {
 
 	/**
 	* Run the worker and cache the result
+	* If this function is called while an existing cacheKey is already running the result will be that existing runner's promise return rather than creating a new instance
 	*
 	* WARNING: You almost always want the agents.get() function instead of agents.run()
 	*          This function will ALWAYS run the agent, whereas get() provides a cached result if there is one
@@ -443,14 +444,21 @@ function Agents(options) {
 		Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings)) // Calculate a session or use the session given
 			.then(session => {
-				if (agents._running[session.cacheKey]) return agents._running[session.cacheKey].promise; // If an agent is already running attach to its defer and complete
+				if (agents._running[session.cacheKey]) return agents._running[session.cacheKey].defer.promise; // If an agent is already running attach to its defer and complete
 
 				agents._running[session.cacheKey] = session;
 
-				return Promise.resolve()
-					.then(()=> agents.emit('run', session))
-					.then(()=> agents.caches[session.cache].unset(`${session.cacheKey}-progress`)) // Reset progress marker
-					.then(()=> agents.runners[session.runner].exec(session))
+				setTimeout(()=> { // Queue in next cycle so we can return the promise object for now
+					Promise.resolve()
+						.then(()=> agents.emit('run', session))
+						.then(()=> agents.caches[session.cache].unset(`${session.cacheKey}-progress`)) // Reset progress marker
+						.then(()=> agents.runners[session.runner].exec(session))
+						.then(value => session.defer.resolve(value))
+						.catch(session.defer.reject)
+						.finally(()=> delete agents._running[session.cacheKey])
+				});
+
+				return session.defer.promise;
 			})
 
 
