@@ -1,3 +1,6 @@
+/**
+* Agent runner using the PM2 process monitor
+*/
 var _ = require('lodash');
 var async = require('async-chainable');
 var colors = require('chalk');
