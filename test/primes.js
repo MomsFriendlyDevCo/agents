@@ -22,6 +22,8 @@ describe('Calculate prime numbers an agent', function() {
 			.on('tick', id => mlog.log('Refreshing agent', id, 'from cron timing', agents.agents[id].timing))
 			.on('scheduled', id => mlog.log('Installed agent', id, 'with timing', agents.agents[id].timing))
 			.on('runImmediate', id => mlog.log('Agent', id, 'marked for immediate run!'))
+			.on('log', (...args) => mlog.log(...args))
+			.on('warn', (...args) => mlog.warn(...args))
 	});
 
 	after(()=> agents.destroy());

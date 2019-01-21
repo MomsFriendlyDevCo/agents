@@ -19,4 +19,6 @@ agents
 	.on('tick', id => console.log(prefix, 'Refreshing agent', colors.cyan(id), 'from cron timing', colors.cyan(agents.agents[id].timing)))
 	.on('scheduled', id => console.log(prefix, 'Installed agent', colors.cyan(id), 'with timing', colors.cyan(agents.agents[id].timing)))
 	.on('runImmediate', id => console.log(prefix, 'Agent', colors.cyan(id), 'marked for immediate run!'))
+	.on('log', (...args) => console.log.apply(this, args))
+	.on('warn', (...args) => console.log.apply(this, ['WARN'].concat(args)))
 ```
