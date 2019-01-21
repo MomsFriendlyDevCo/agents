@@ -438,6 +438,7 @@ function Agents(options) {
 	* @param {string|Object} id The ID of the agent to run OR a session object from createSession()
 	* @param {Object} [agentSettings] Optional settings to pass to the agent
 	* @param {Object} [settings] Settings to change the behaviour of this function, see createSession() for the list of valid options
+	* @param {string} [settings.want="promise"] What response to return. ENUM: "promise" (return a resovable promise which provides the result value), "session" (the created session rather than the promise itself)
 	* @returns {Promise} Promise with result or thrown error
 	* @emits run Called as `session` before a runner is passed the session to be run
 	*/
@@ -459,7 +460,9 @@ function Agents(options) {
 						.finally(()=> delete agents._running[session.cacheKey])
 				});
 
-				return session.defer.promise;
+				return !settings.want || settings.want == 'promise' ? session.defer.promise
+					: settings.want == 'session' ? session
+					: session.defer.promise;
 			})
 
 
