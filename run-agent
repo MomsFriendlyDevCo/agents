@@ -28,14 +28,28 @@ var url = require('url');
 
 program
 	.version(require('./package.json').version)
-	.usage('[agent-id]')
+	.usage('[-d] [-r runner] [-c cache] [-o setting=value...] <agent-id>')
 	.option('-l, --list', 'List all available agents')
 	.option('-e, --enclose', 'Dont return errors, instead wrap the error inside the return value (implied when using the env AGENT)')
 	.option('-r, --runner [inline|aws|pm2]', 'What runner to use with the agent')
 	.option('-c, --cache [filesystem|redis...]', 'What caching method to force')
-	.option('-o, --options <key=val>', 'Specify agent options in CSV + dotted notation')
+	.option('-o, --opts <key=val>', 'Specify an agent options in dotted notation (can be specified multiple times)', (v, total) => {
+		var bits = [key, val] = v.split(/\s*=\s*/, 2);
+		if (bits.length == 1) { // Assume we are just setting a flag to true
+			_.set(total, key, true);
+		}  else if (bits.length == 2) { // Assume key=val
+			_.set(total, key, // Set the key, accepting various shorthand boolean values
+				val === 'true' ? true
+				: val === 'false' ? false
+				: val
+			);
+		} else {
+			throw `Failed to parse setting "${v}"`;
+		}
+		return total
+	}, {})
 	.option('-n, --nice [number]', 'Set nice priority of the process (default 10)')
-	.option('-s, --settings [json]', 'Provide settings to the agent')
+	.option('-s, --settings [json]', 'Provide settings to the agent', {})
 	.option('-d, --debug', 'Debugging convenience mode (imples `-pv -m inline -c memory`)')
 	.option('-p, --print', 'Output the result of the agent to STDOUT')
 	.option('-r, --pretty', 'Pretty print the output')
@@ -44,6 +58,7 @@ program
 	.option('--max-ram [limit]', 'Set the maximum RAM size in bytes (default: ~12gb)')
 	.option('--max-procs [limit]', 'Set the maximum number of spawned processes (default: 1024)')
 	.option('--max-files [limit]', 'Set the maximum number of files a process can open (default: 50)')
+	.option('--no-human', 'Disable automatic human TTY detection')
 	.parse(process.argv)
 
 
@@ -85,6 +100,14 @@ Promise.resolve()
 			.then(()=> { throw new Error('QUIT') })
 	})
 	// }}}
+	// Detect human using TTY {{{
+	.then(()=> {
+		if (process.stdout.isTTY && !program.debug && program.human) {
+			console.log(colors.grey('You look like a human, switching on --debug mode. Use --no-human to disable human detection'));
+			program.debug = true;
+		}
+	})
+	// }}}
 	// Process arguments / environment variables {{{
 	.then(()=> {
 		_.defaults(program, {
@@ -120,17 +143,11 @@ Promise.resolve()
 
 		if (!program.settings && process.env.AGENT_SETTINGS) {
 			program.settings = JSON.parse(process.env.AGENT_SETTINGS);
-		} else if (program.settings) {
+		} else if (_.isString(program.settings)) {
 			program.settings = JSON.parse(program.settings);
-		} else if (program.options && _.isString(program.options)) {
-			program.settings = {};
-			program.options.split(/\s*,\s*/).forEach(setting => {
-				var [, key, val] = /^(.+?)=(.*)$/.exec(setting) || [];
-				_.set(program.settings, key, val);
-			});
-		} else if (!program.settings) {
-			program.settings = {};
 		}
+
+		if (program.opts) Object.assign(program.settings, program.opts);
 
 		if (process.env.AGENT_LAMBDA) {
 			_.defaults(program, {
