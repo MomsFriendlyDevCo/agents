@@ -7,7 +7,7 @@ Recommended emitter bindings
 ----------------------------
 
 ```javascript
-var prefix = colors.blue('[agents']);
+var prefix = colors.blue('[agents]');
 
 agents
 	.on('init', ()=> console.log(prefix, 'Created agents interface'))
