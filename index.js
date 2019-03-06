@@ -81,6 +81,23 @@ function Agents(options) {
 
 
 	/**
+	* Set one or more setting values for this object
+	* This can either be a single key + val or an object to be merged into the settings
+	* @param {string|Object} key Either the dotted notation path to set or an object to be merged
+	* @param {*} [val] The value to set
+	* @returns {Object} This chainable object
+	*/
+	agents.set = (key, val) => {
+		if (_.isObject(key)) {
+			_.merge(agents.settings, key);
+		} else {
+			_.set(agents.settings, key, val);
+		}
+		return agents;
+	};
+
+
+	/**
 	* Storage for all loaded caches
 	*/
 	agents.caches = {};
