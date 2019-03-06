@@ -397,6 +397,8 @@ function Agents(options) {
 			logThrottled: _.throttle((...msg) => context.log(...msg), agents.settings.logThrottle),
 			warn: (...msg) => agents.emit('warn', ...msg),
 		});
+
+		context.log.colors = colors;
 		// }}}
 
 		// Progress reporting {{{
