@@ -27,7 +27,7 @@ var cache = require('@momsfriendlydevco/cache');
 var colors = require('chalk');
 var crypto = require('crypto');
 var CronJob = require('cron').CronJob;
-var events = require('events');
+var eventer = require('@momsfriendlydevco/eventer');
 var fspath = require('path');
 var glob = require('globby');
 var timestring = require('timestring');
@@ -583,8 +583,7 @@ function Agents(options) {
 
 	if (agents.settings.autoInit) agents.init();
 
-	return agents;
+	return eventer.extend(agents);
 };
 
-util.inherits(Agents, events.EventEmitter);
 module.exports = Agents;
