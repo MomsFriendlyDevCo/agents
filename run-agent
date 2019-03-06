@@ -8,6 +8,8 @@
 * @param {string} [process.env.AGENT] The ID of the agent to run
 * @param {string} [process.env.AGENT_SETTINGS] JSON encoded object to pass to the agent to process
 * @param {string} [process.env.AGENT_LAMBDA] If set the container is assumed to be a lambda process, all safeguards are removed and maximum resources are consumed
+* @param {string} [process.env.AGENT_PATH] Use a series of CSV seperated directories as the root paths (this effectively sets agents.paths[])
+* @param {string} [process.env.AGENT_PRELOAD] Run a JS file which gets passed the active agent session (use this to hook into the agent process). If the function returns a promise, the CLI will wait until its resolved before continuing. The following eventer events are supported: 'start', 'preRun', 'postRun', 'preDestroy', 'postDestroy', 'end' all events are emitted as `(session)` which gives access to things like the `session.result` value
 */
 
 
@@ -16,6 +18,7 @@ var Agents = require('.');
 var agents; // Initialized version of the agents singleton
 var colors = require('chalk');
 var dump = require('dumper.js').dump;
+var eventer = require('@momsfriendlydevco/eventer');
 var fs = require('fs');
 var os = require('os');
 var spawn = require('child_process').spawn;
@@ -25,6 +28,10 @@ var Table = require('cli-table3');
 var timestring = require('timestring');
 var util = require('util');
 var url = require('url');
+
+var agentInitSettings = {
+	autoInstall: false, // Don't set up Cron tasks
+};
 
 program
 	.version(require('./package.json').version)
@@ -49,7 +56,6 @@ program
 		return total
 	}, {})
 	.option('-n, --nice [number]', 'Set nice priority of the process (default 10)')
-	.option('-s, --settings [json]', 'Provide settings to the agent', {})
 	.option('-d, --debug', 'Debugging convenience mode (imples `-pv -m inline -c memory`)')
 	.option('-p, --print', 'Output the result of the agent to STDOUT')
 	.option('-r, --pretty', 'Pretty print the output')
@@ -62,13 +68,23 @@ program
 	.parse(process.argv)
 
 
+var session;
 Promise.resolve()
+	// Process environment variable mutators {{{
+	.then(()=> {
+		if (process.env.AGENT_PATH) {
+			var usePaths = process.env.AGENT_PATH.split(/\s*,\s*/)
+			agentInitSettings.paths = usePaths;
+			if (program.verbose) console.log(colors.grey('Using environment paths override:', usePaths.join(', ')));
+		}
+	})
+	// }}}
 	// Run in list mode (if --list) {{{
 	.then(()=> {
 		if (!program.list) return;
 
 		return Promise.resolve()
-			.then(()=> agents = new Agents({autoInstall: false}))
+			.then(()=> agents = new Agents(agentInitSettings))
 			.then(()=> agents.init())
 			.then(()=> {
 				var table = new Table({
@@ -141,13 +157,7 @@ Promise.resolve()
 			if (isNaN(program.maxRam)) throw new Error('Invalid maximum RAM - must be a number of bytes');
 		}
 
-		if (!program.settings && process.env.AGENT_SETTINGS) {
-			program.settings = JSON.parse(process.env.AGENT_SETTINGS);
-		} else if (_.isString(program.settings)) {
-			program.settings = JSON.parse(program.settings);
-		}
-
-		if (program.opts) Object.assign(program.settings, program.opts);
+		if (process.env.AGENT_SETTINGS) program.opts = JSON.parse(process.env.AGENT_SETTINGS);
 
 		if (process.env.AGENT_LAMBDA) {
 			_.defaults(program, {
@@ -224,10 +234,11 @@ Promise.resolve()
 	// Setup the agents module {{{
 	.then(()=> {
 		agents = new Agents({
-			autoInstall: false,
+			...agentInitSettings,
 			cache: program.cache ? {modules: [program.cache], calculate: ()=> program.cache} : undefined,
 			runner: program.runner ? {modules: [program.runner], calculate: ()=> program.runner} : undefined,
 		});
+		agents.set(program.opts);
 		return agents.init();
 	})
 	.then(()=> {
@@ -235,8 +246,10 @@ Promise.resolve()
 	})
 	// }}}
 	// Run the agent {{{
-	.then(()=> agents.createSession(program.agent, program.settings))
-	.then(session => {
+	.then(()=> agents.createSession(program.agent, program.opts))
+	.then(createdSession => session = createdSession)
+	.then(()=> eventer.extend(session))
+	.then(()=> {
 		if (program.verbose) {
 			console.log(colors.blue('[agents]'), 'Going to run the agent', colors.cyan(session.agent));
 			console.log(colors.blue('[agents]'), '... with settings:', util.inspect(session.agentSettings, {depth: null, colors: true}))
@@ -246,28 +259,41 @@ Promise.resolve()
 		}
 		return session;
 	})
-	.then(session => agents.run(session))
+	.then(()=> {
+		if (!process.env.AGENT_PRELOAD) return session;
+		if (program.verbose) console.log(colors.grey('Including the preload file:', process.env.AGENT_PRELOAD));
+		return Promise.resolve(require(process.env.AGENT_PRELOAD)(session))
+			.then(()=> session);
+	})
+	.then(()=> session.emit('start', session))
+	.then(()=> session.emit('preRun', session))
+	.then(()=> agents.run(session).then(res => session.result = res))
+	.then(()=> session.emit('postRun', session))
 	// }}}
 	// Output the result (if --print || --output) {{{
-	.then(result => {
+	.then(()=> {
 		if (program.print) {
 			console.log(colors.bold.blue('RESULT:'));
-			dump(result);
+			dump(session.result);
 		}
 	})
 	// }}}
 	// Flush cache {{{
+	.then(()=> session.emit('preDestroy', session))
 	.then(()=> agents.destroy())
+	.then(()=> session.emit('postDestroy', session))
 	// }}}
 	// End {{{
 	.catch(e => {
 		if (e.toString() == 'Error: QUIT') return process.exit(0); // Exit quietly without error
 		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent', colors.cyan(program.agent));
 		console.log(e);
-		process.exit(1);
+		session.emit('end', session)
+			.then(()=> process.exit(1))
 	})
 	.then(()=> {
 		console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
-		process.exit(0);
+		session.emit('end', session)
+			.then(()=> process.exit(0))
 	})
 	// }}}
