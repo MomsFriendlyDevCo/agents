@@ -45,7 +45,7 @@ function Agents(options) {
 			`${__dirname}/examples/**/*.agent.js`,
 			'!node_modules',
 		],
-
+		keyRewrite: key => key,
 		cache: {
 			modules: ['filesystem', 'memory'],
 			calculate: session => session.settings.cache.modules[0],
@@ -276,12 +276,14 @@ function Agents(options) {
 			.keyArrangeDeep()
 			.value()
 
-		return _.isEmpty(hashable)
-			? id
-			: id + '-' +
-				crypto.createHash('sha256')
-					.update(_.isString(hashable) || _.isNumber(hashable) || _.isBoolean(hashable) ? hashable : JSON.stringify(hashable))
-					.digest('hex')
+		return agents.settings.keyRewrite(
+			_.isEmpty(hashable)
+				? id
+				: id + '-' +
+					crypto.createHash('sha256')
+						.update(_.isString(hashable) || _.isNumber(hashable) || _.isBoolean(hashable) ? hashable : JSON.stringify(hashable))
+						.digest('hex')
+		);
 	};
 
 
