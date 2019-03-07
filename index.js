@@ -450,6 +450,8 @@ function Agents(options) {
 	* Run the worker and cache the result
 	* If this function is called while an existing cacheKey is already running the result will be that existing runner's promise return rather than creating a new instance
 	*
+	* If a session is requested the object returned is the same as that from createSession() but with additional fields: `status` ('pending', 'completed', 'error'), `result` (if resolved) and `error` (if rejected)
+	*
 	* WARNING: You almost always want the agents.get() function instead of agents.run()
 	*          This function will ALWAYS run the agent, whereas get() provides a cached result if there is one
 	*
@@ -479,10 +481,52 @@ function Agents(options) {
 						.finally(()=> delete agents._running[session.cacheKey])
 				});
 
-				return !settings.want || settings.want == 'promise' ? session.defer.promise
-					: settings.want == 'session' ? session
-					: session.defer.promise;
+				if (!settings.want || settings.want == 'promise') { // Want promise
+					return session.defer.promise;
+				} else if (settings.want == 'session') {
+					session.status = 'pending';
+					session.result = undefined;
+					return session;
+				} else {
+					throw new Error(`Unkown want type: "${settings.want}"`);
+				}
 			})
+
+
+
+	/**
+	* Update a session by checking its progress
+	* NOTE: Passing the full session object is much faster as its not necessary to guess the cache to use
+	* @param {string|Object} session Either a session object or its cacheKey
+	* @returns {Object} The mutated session
+	*/
+	agents.getSession = session => {
+		var id = _.isString(session) ? session : session.cacheKey;
+		var possibleCaches = _.isString(session) ? _.keys(agents.caches) : [session.cache];
+
+		return Promise.all([
+			// Scan to see if we have a value
+			Promise.all(possibleCaches.map(cache => agents.caches[cache].get(id))),
+
+			// Try to find the (optional) progress
+			Promise.all(possibleCaches.map(cache => agents.caches[cache].get(id + '-progress'))),
+		])
+			.then(results => {
+				// Find the index of the most likely cache
+				var useCacheIndex = possibleCaches.findIndex((cache, i) => results[0][i] || results[1][i]);
+
+				session.result = results[0][useCacheIndex];
+				session.progress = results[1][useCacheIndex];
+
+				if (_.isObject(session.result) && _.isEqual(_.keys(session.result), ['error'])) {
+					session.status = 'error';
+					session.error = session.result.error;
+				} else {
+					session.status = session.result ? 'complete' : 'pending';
+				}
+			})
+			.then(()=> session)
+	};
 
 
 	// FIXME: Refactor line ------------------------------------------------------------------------------------------------------------------------------------------------
