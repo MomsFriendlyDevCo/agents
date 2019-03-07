@@ -27,6 +27,7 @@ var cache = require('@momsfriendlydevco/cache');
 var colors = require('chalk');
 var crypto = require('crypto');
 var CronJob = require('cron').CronJob;
+var cronTranslate = require('cronstrue').toString;
 var eventer = require('@momsfriendlydevco/eventer');
 var fspath = require('path');
 var glob = require('globby');
