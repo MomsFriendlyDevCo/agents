@@ -387,20 +387,21 @@ function Agents(options) {
 	* The context gets attached to agents._agents[id].context when refresh() is called
 	* @param {Object} session The session to create the context for
 	* @return {Object} A context object used to call the agent worker() function
-	* @emits log Emitted as (...args) whenever agent.log() is called
-	* @emits warn Emitted as (...args) whenever agent.warn() is called
+	* @emits log Emitted as (session, ...args) whenever agent.log() is called
+	* @emits warn Emitted as (session, ...args) whenever agent.warn() is called
 	*/
 	agents.createContext = session => {
 		var context = {};
 
 		// Basic logging {{{
 		Object.assign(context, {
-			log: (...msg) => agents.emit('log', ...msg),
-			logThrottled: _.throttle((...msg) => context.log(...msg), agents.settings.logThrottle),
-			warn: (...msg) => agents.emit('warn', ...msg),
+			log: (...msg) => agents.emit('log', session, ...msg),
+			logThrottled: _.throttle((...msg) => context.log(session, ...msg), agents.settings.logThrottle),
+			warn: (...msg) => agents.emit('warn', session, ...msg),
 		});
 
 		context.log.colors = colors;
+		context.log.flush = ()=> { /* FIXME: Not yet supported */ };
 		// }}}
 
 		// Progress reporting {{{
