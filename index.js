@@ -517,6 +517,8 @@ function Agents(options) {
 		var id = _.isString(session) ? session : session.cacheKey;
 		var possibleCaches = _.isString(session) ? _.keys(agents.caches) : [session.cache];
 
+		if (_.isString(session)) session = {}; // Create stub to populate later
+
 		return Promise.all([
 			// Scan to see if we have a value
 			Promise.all(possibleCaches.map(cache => agents.caches[cache].get(id))),
