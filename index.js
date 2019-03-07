@@ -547,11 +547,12 @@ function Agents(options) {
 	/**
 	* Clear the cache contents for a given agent
 	* @param {string|Object} id Either the ID of the agent contents to clear or the session object
-	* @param {Object} settings If ID is an agent ID settings is any additional optional settings to pass to the session creator
+	* @param {Object} [agentSettings] If ID is an agent ID settings is any additional optional settings to pass to the session creator
+	* @param {Object} [settings] Additional settings when creating the session
 	*/
-	agents.invalidate = (id, settings) =>
+	agents.invalidate = (id, agentSettings, settings) =>
 		Promise.resolve()
-			.then(()=> _.isObject(id) ? id : agents.createSession(id, settings))
+			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings))
 			.then(session => agent.caches[session.cache].unset(session.cacheKey))
 
 
