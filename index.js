@@ -537,7 +537,7 @@ function Agents(options) {
 	* @param {Object} settings If ID is an agent ID settings is any additional optional settings to pass to the session creator
 	*/
 	agents.invalidate = (id, settings) =>
-		return Promise.resolve()
+		Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, settings))
 			.then(session => agent.caches[session.cache].unset(session.cacheKey))
 
