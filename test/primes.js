@@ -37,4 +37,34 @@ describe('Calculate prime numbers an agent', function() {
 				expect(value).to.have.length(168);
 			})
 	);
+
+	it('should queue up the prime agent and wait for the session to complete via paging', ()=>
+		agents.run('primes', {limit: 10000}, {runner: 'pm2', want: 'session'})
+			.then(session => {
+				expect(session).to.have.property('cacheKey');
+				expect(session).to.have.property('status', 'pending');
+				return session;
+			})
+			.then(session => new Promise((resolve, reject) => {
+				var checkStatusCount = 0;
+				var checkStatus = ()=> {
+					mlog.log(`Check status #${++checkStatusCount}`);
+					agents.getSession(session)
+						.then(session => {
+							if (session.status == 'complete') {
+								resolve(session);
+							} else if (session.status == 'error') {
+								reject(session.error);
+							} else {
+								setTimeout(checkStatus, 1000);
+							}
+						});
+				};
+				checkStatus();
+			}))
+			.then(session => {
+				expect(session.result).to.be.an('array');
+				expect(session.result).to.have.length(1229);
+			})
+	);
 });
