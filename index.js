@@ -406,7 +406,7 @@ function Agents(options) {
 		// Basic logging {{{
 		Object.assign(context, {
 			log: (...msg) => agents.emit('log', session, ...msg),
-			logThrottled: _.throttle((...msg) => context.log(session, ...msg), agents.settings.logThrottle),
+			logThrottled: _.throttle((...msg) => context.log(...msg), agents.settings.logThrottle),
 			warn: (...msg) => agents.emit('warn', session, ...msg),
 		});
 
