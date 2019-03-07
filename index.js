@@ -531,103 +531,50 @@ function Agents(options) {
 	};
 
 
-	// FIXME: Refactor line ------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 	/**
 	* Clear the cache contents for a given agent
+	* @param {string|Object} id Either the ID of the agent contents to clear or the session object
+	* @param {Object} settings If ID is an agent ID settings is any additional optional settings to pass to the session creator
 	*/
-	agents.invalidate = argy('string [object] [function]', function(id, settings, finish) {
-		// Sanity checks {{{
-		if (!app.agents._agents[id]) throw new Error(`Agent "${id}" is invalid`);
-		// }}}
-		// Compute the cache key to use when communicating (if settings exists) {{{
-		if (!settings) settings = {};
-		var cacheKey = settings.$cacheKey || agents.getKey(id, settings);
-		// }}}
-
-		async()
-			// Determine run method {{{
-			.then('method', function(next) {
-				if (app.config.agents.methods.force) return next(null, app.config.agents.methods.force);
-				if (!agents._agents[id].methods) return next(`Agent "${id}" has no execution methods specified`);
-				var method = agents._agents[id].methods.find(m => app.config.agents.methods[m]);
-				if (!method) return next('Cannot find available method to execute agent');
-				next(null, method);
-			})
-			// }}}
-			// Determine cache method {{{
-			.then('cache', function(next) {
-				if (!_.get(app, 'config.agents.cache')) return next('No cache method rules defined in app.config.agents.cache');
-				var cache = app.config.agents.cache
-					.map(rule => // Transform functions into their results
-						_.isFunction(rule) ? rule(Object.assign({}, agents._agents[id], {method: this.method}))
-						: rule
-					)
-					.find(rule => rule) // First non-undefined
-
-				if (!cache) return next('Cannot find any cache to use based on rules defined in app.config.agents.cache');
-				if (!app.caches[cache]) return next(`Need to use caching method "${cache}" but it is not loaded in app.caches`);
-				next(null, cache);
-			})
-			// }}}
-			// Invalidate the cache {{{
-			.then(function(next) {
-				app.caches[this.cache].unset(cacheKey, next);
-			})
-			// }}}
-			.end(finish);
-	});
+	agents.invalidate = (id, settings) =>
+		return Promise.resolve()
+			.then(()=> _.isObject(id) ? id : agents.createSession(id, settings))
+			.then(session => agent.caches[session.cache].unset(session.cacheKey))
 
 
 	/**
 	* Retrieve a list of all agents with meta information
 	* NOTE: The agent ID's returned are stipped of the prefix / suffixs added by the caching module
-	* @param {function} finish Callback to call as (err, res)
+	* @returns {Promise} A promise which will resolve with the list data
 	*/
-	agents.list = argy('function', function(finish) {
-		async()
-			.parallel({
-				agents: function(next) {
-					next(null, agents._agents);
-				},
-				cacheContents: function(next) {
-					async()
-						.map('items', _.keys(app.caches), function(next, id) {
-							app.caches[id].list(next);
-						})
-						.then('items', function(next) {
-							next(null, _.flatten(this.items));
-						})
-						.end('items', next);
-				},
+	agents.list = ()=>
+		Promise.resolve()
+			.then(()=> Promise.all(_.keys(agents.caches).map(cache =>
+				agents.caches[cache].list()
+			)))
+			.then(cacheContents => _.flatten(cacheContents))
+			.then(cacheContents => {
+
+				return _.map(agents._agents, agent => {
+					var cacheKey = agents.getKey(agent.id);
+					var res = {
+						id: agent.id,
+						cacheKey,
+						timing: agent.timing,
+						hasReturn: agent.hasReturn,
+						show: agent.show,
+						methods: agent.methods,
+						expiresString: agent.expires || false,
+						expires: _.isString(agent.expires) && agent.expires ? timestring(agent.expires) * 1000 : false,
+					};
+
+					if (res.timing) res.timingString = cronTranslate(res.timing);
+
+					var matchingCache = cacheContents.find(cc => cc.id == cacheKey);
+					if (matchingCache) _.assign(res, _.omit(matchingCache, 'id'));
+					return res;
+				});
 			})
-			.map('agents', 'agents', function(next, agent) {
-				// Create basic return
-				var cacheKey = app.config.middleware.cache.keyMangle(agent.id);
-				var res = {
-					id: agent.id,
-					cacheKey: cacheKey,
-					timing: agent.timing,
-					hasReturn: agent.hasReturn,
-					show: agent.show,
-					methods: agent.methods,
-					expiresString: agent.expires || false,
-					expires: _.isString(agent.expires) && agent.expires ? timestring(agent.expires) * 1000 : false,
-				};
-
-				if (res.timing) res.timingString = cronTranslate(res.timing);
-
-				var matchingCache = this.cacheContents.find(cc => cc.id == cacheKey);
-				if (matchingCache) _.assign(res, _.omit(matchingCache, 'id'));
-
-				next(null, res);
-			})
-			.end(function(err) {
-				if (err) return finish(err);
-				finish(null, _.values(this.agents));
-			});
-	});
 
 	if (agents.settings.autoInit) agents.init();
 
