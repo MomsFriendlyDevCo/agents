@@ -364,23 +364,32 @@ function Agents(options) {
 	* @param {string|Object} id The ID of the agent to return the value of OR a session object from createSession()
 	* @param {Object} [agentSettings] Optional settings to pass to the agent
 	* @param {Object} [settings] Settings to change the behaviour of this function, see createSession() for the list of valid options
+	* @param {string} [settings.cacheMethod="get"] The cache method to run
+	* @param {boolean} [settings.lazy=false] If non-lazy (i.e. `true`) agent.run() will be invoked if no value was found rather than returning undefined
 	* @returns {Promise} A promise which resolves with the agent result
 	*/
 	agents.get = (id, agentSettings = {}, settings = {}) =>
 		Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings)) // Calculate a session or use the session given
 			// Try to access an existing cache value - resolve this promise chain if we have one, otherwise call run()
-			.then(session => new Promise((resolve, reject) => {
-				agents.caches[session.cache].get(agentSettings.$cacheKey, (err, val) => {
-					if (err) {
-						reject(err);
-					} else if (val !== undefined) {
-						resolve(val);
-					} else {
-						resolve(agents.run(session));
-					}
-				});
-			}))
+			.then(session => agents.caches[session.cache][settings.cacheMethod || 'get'](session.cacheKey))
+			.then(val =>
+				val ? val
+				: !settings.lazy ? agents.run(session)
+				: undefined
+			)
+
+
+	/**
+	* Get the approximate size of the object in bytes
+	* This function really just wraps get with `{lazy: true, cacheMethod: 'size'}`
+	* @param {string|Object} id The ID of the agent to return the value of OR a session object from createSession()
+	* @param {Object} [agentSettings] Optional settings to pass to the agent
+	* @param {Object} [settings] Settings to change the behaviour of this function, see createSession() for the list of valid options
+	* @returns {Promise} A promise which resolves with the agent result
+	*/
+	agents.getSize = (id, agentSettings = {}, settings = {}) =>
+		agents.get(id, agentSettings, {...settings, lazy: true, cacheMethod: 'size'})
 
 
 	/**
