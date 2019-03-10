@@ -154,13 +154,19 @@ function Agents(options) {
 			.then(()=> glob(agents.settings.paths, {ignore: ['node_modules']}))
 			.then(paths =>
 				agents._agents = _(paths)
-					.mapKeys(path => {
-						var module = require(path);
-						if (!module.id) agents.emit('refreshWarn', path, 'file does not have an ID or look like a valid agent - skipped');
-						return module.id;
+					.map(path => _.set(require(path), 'path', path))
+					.map(mod => _.defaults(mod, agents.settings.agentDefaults))
+					.filter(mod => {
+						var missing = ['id', 'hasReturn', 'worker'].find(i => !mod[i]);
+						if (missing) {
+							agents.emit('refreshWarn', mod.path, `file does not have the required key "${missing}" (or maybe look like a valid agent?) - skipped`);
+							return false;
+						} else {
+							return true;
+						}
 					})
-					.mapValues(path => _.defaults(require(path), agents.settings.agentDefaults))
-					.pickBy((v, k) => k !== 'undefined') // Only include agents that have a valid ID
+					.mapKeys(mod => mod.id)
+					.mapValues(mod => mod)
 					.value()
 			)
 			// }}}
