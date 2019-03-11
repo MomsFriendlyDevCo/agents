@@ -17,8 +17,8 @@ before('Setup emitter handlers', ()=> {
 		.on('tick', id => mlog.log('Refreshing agent', id, 'from cron timing', agents.agents[id].timing))
 		.on('scheduled', id => mlog.log('Installed agent', id, 'with timing', agents.agents[id].timing))
 		.on('runImmediate', id => mlog.log('Agent', id, 'marked for immediate run!'))
-		.on('log', (...args) => mlog.log(...args))
-		.on('warn', (...args) => mlog.log('Warning', ...args))
+		.on('log', (session, ...args) => mlog.log(...args))
+		.on('warn', (session, ...args) => mlog.log('Warning', ...args))
 });
 
 after(()=> agents.destroy());
