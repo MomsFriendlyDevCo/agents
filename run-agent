@@ -9,7 +9,7 @@
 * @param {string} [process.env.AGENT_SETTINGS] JSON encoded object to pass to the agent to process
 * @param {string} [process.env.AGENT_LAMBDA] If set the container is assumed to be a lambda process, all safeguards are removed and maximum resources are consumed
 * @param {string} [process.env.AGENT_PATH] Use a series of CSV seperated directories as the root paths (this effectively sets agents.paths[])
-* @param {string} [process.env.AGENT_PRELOAD] Run a JS file which gets passed the active agent session (use this to hook into the agent process). If the function returns a promise, the CLI will wait until its resolved before continuing. The following eventer events are supported: 'start', 'preRun', 'postRun', 'preDestroy', 'postDestroy', 'end' all events are emitted as `(session)` which gives access to things like the `session.result` value
+* @param {string} [process.env.AGENT_PRELOAD] Run a JS file which gets passed the active agent session (use this to hook into the agent process). If the function returns a promise, the CLI will wait until its resolved before continuing. The following eventer events are supported: 'start', 'preEmit', 'postEmit', 'preSession', 'postSession', 'preRun', 'postRun', 'preDestroy', 'postDestroy', 'end' all events are emitted as `(session, agentInstance)` (until `postSession` session will be an empty object) which gives access to things like the `session.result` value
 */
 
 
@@ -68,7 +68,7 @@ program
 	.parse(process.argv)
 
 
-var session;
+var session = {};
 Promise.resolve()
 	// Process environment variable mutators {{{
 	.then(()=> {
@@ -239,16 +239,34 @@ Promise.resolve()
 			runner: program.runner ? {modules: [program.runner], calculate: ()=> program.runner} : undefined,
 		});
 		agents.set(program.opts);
-		return agents.init();
 	})
+	// }}}
+	// Include the preload file {{{
+	.then(()=> eventer.extend(session))
+	.then(()=> {
+		if (!process.env.AGENT_PRELOAD) return;
+		if (program.verbose) console.log(colors.grey('Including the preload file:', process.env.AGENT_PRELOAD));
+		return Promise.resolve(require(process.env.AGENT_PRELOAD)(session))
+	})
+	.then(()=> session.emit('start', session, agents))
+	// }}}
+ 	// Init {{{
+	.then(()=> session.emit('preInit', session, agents))
+	.then(()=> { // Override the session settings if we have command line values
+		if (program.cache) agents.set({cache: {modules: [program.cache], calculate: ()=> program.cache}});
+		if (program.runner) agents.set({runner: {modules: [program.runner], calculate: ()=> program.runner}});
+	})
+ 	.then(()=> agents.init())
 	.then(()=> {
 		if (!agents.has(program.agent)) throw new Error(`Invalid agent-id: "${program.agent}"`);
 	})
+	.then(()=> session.emit('postInit', session, agents))
 	// }}}
 	// Run the agent {{{
-	.then(()=> agents.createSession(program.agent, program.opts))
-	.then(createdSession => session = createdSession)
-	.then(()=> eventer.extend(session))
+	.then(()=> session.emit('preSession', session, agents))
+	.then(()=> agents.createSession(program.agent, program.opts)) // Expand dummy session with real details
+	.then(createdSession => Object.assign(session, createdSession))
+	.then(()=> session.emit('postSession', session, agents))
 	.then(()=> {
 		if (program.verbose) {
 			console.log(colors.blue('[agents]'), 'Going to run the agent', colors.cyan(session.agent));
@@ -259,16 +277,9 @@ Promise.resolve()
 		}
 		return session;
 	})
-	.then(()=> {
-		if (!process.env.AGENT_PRELOAD) return session;
-		if (program.verbose) console.log(colors.grey('Including the preload file:', process.env.AGENT_PRELOAD));
-		return Promise.resolve(require(process.env.AGENT_PRELOAD)(session))
-			.then(()=> session);
-	})
-	.then(()=> session.emit('start', session))
-	.then(()=> session.emit('preRun', session))
+	.then(()=> session.emit('preRun', session, agents))
 	.then(()=> agents.run(session).then(res => session.result = res))
-	.then(()=> session.emit('postRun', session))
+	.then(()=> session.emit('postRun', session, agents))
 	// }}}
 	// Output the result (if --print || --output) {{{
 	.then(()=> {
@@ -279,21 +290,21 @@ Promise.resolve()
 	})
 	// }}}
 	// Flush cache {{{
-	.then(()=> session.emit('preDestroy', session))
+	.then(()=> session.emit('preDestroy', session, agents))
 	.then(()=> agents.destroy())
-	.then(()=> session.emit('postDestroy', session))
+	.then(()=> session.emit('postDestroy', session, agents))
 	// }}}
 	// End {{{
 	.catch(e => {
 		if (e.toString() == 'Error: QUIT') return process.exit(0); // Exit quietly without error
 		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent', colors.cyan(program.agent));
 		console.log(e);
-		session.emit('end', session)
+		session.emit('end', session, agents)
 			.then(()=> process.exit(1))
 	})
 	.then(()=> {
 		console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
-		session.emit('end', session)
+		session.emit('end', session, agents)
 			.then(()=> process.exit(0))
 	})
 	// }}}
