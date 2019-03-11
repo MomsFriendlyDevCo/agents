@@ -171,7 +171,7 @@ Promise.resolve()
 
 		if (program.debug) {
 			_.defaults(program, {
-				runner: {calculate: ()=> 'inline', modules: ['inline']},
+				runner: 'inline',
 				print: true,
 				verbose: 2,
 			});
