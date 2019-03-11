@@ -138,7 +138,6 @@ Promise.resolve()
 			// Enable various inline options:
 			colors.enabled = true;
 			_.defaults(program, {
-				runner: 'inline',
 				nice: 10,
 				verbose: 10,
 			});
@@ -172,7 +171,7 @@ Promise.resolve()
 
 		if (program.debug) {
 			_.defaults(program, {
-				runner: 'inline',
+				runner: {calculate: ()=> 'inline', modules: ['inline']},
 				print: true,
 				verbose: 2,
 			});

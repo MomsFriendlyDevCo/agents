@@ -12,7 +12,7 @@ module.exports = {
 	id: 'pm2',
 	exec: session =>
 		async()
-			.set('procName', `agent-${session.cacheKey}`)
+			.set('procName', session.settings.runner.pm2.procName(session.cacheKey))
 			// Connect to PM2 {{{
 			.then('pm2', function(next) {
 				pm2.connect(next);
@@ -31,19 +31,14 @@ module.exports = {
 			// Create the process {{{
 			.then('pid', function(next) {
 				session.context.log('Spawning PM2 process', colors.cyan(this.procName));
-				pm2.start(`${__dirname}/../run-agent`, {
+				pm2.start(session.settings.runner.pm2.execFile, {
 					name: this.procName,
 					args: [session.cacheKey], // NOTE: This doesn't work due to the way that PM2 wraps the node script, maybe one day it will be supported
-					cwd: `${__dirname}/..`,
-					env: {
-						NODE_ENV: process.env.NODE_ENV,
-						AGENT: session.agent,
-						AGENT_SETTINGS: JSON.stringify(session.agentSettings),
-						AGENT_CACHE: session.cache,
-					},
+					cwd: session.settings.runner.pm2.cwd,
+					env: session.settings.runner.pm2.env(session),
 					autorestart: false,
-					interpreter: 'node',
-					interpreterArgs: ['--max-old-space-size=12288'],
+					interpreter: session.settings.runner.pm2.execFileInterpreter,
+					interpreterArgs: session.settings.runner.pm2.execFileInterpreterArgs,
 				}, (err, proc) => {
 					if (err) return next(err);
 					// Wait at least one second before continuing

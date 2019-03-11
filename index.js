@@ -69,6 +69,20 @@ function Agents(options) {
 		runner: {
 			modules: ['inline'],
 			calculate: session => 'inline',
+			pm2: {
+				procName: cacheKey => cacheKey,
+				execFile: `${__dirname}/run-agent`,
+				execFileInterpreter: 'node',
+				execFileInterpreterArgs: ['--max-old-space-size=12288'],
+				cwd: __dirname,
+				env: session => ({
+					NODE_ENV: process.env.NODE_ENV,
+					AGENT: session.agent,
+					AGENT_SETTINGS: JSON.stringify(session.agentSettings),
+					AGENT_CACHE: session.cache,
+					AGENT_LAMBDA: 1,
+				}),
+			},
 		},
 
 		agentDefaults: {
@@ -336,7 +350,7 @@ function Agents(options) {
 				cache: 'not yet calculated',
 				startTime: Date.now(),
 				worker: agents._agents[id],
-				settings: {...agents.settings, ...settings},
+				settings: agents.settings,
 				defer: agents.createDefer(),
 			})
 			// }}}
