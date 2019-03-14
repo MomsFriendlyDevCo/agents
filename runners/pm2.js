@@ -57,6 +57,9 @@ module.exports = {
 							: _.has(proc, '0.pm2_env.status') ? proc[0]['pm2_env'].status
 							: 'unknown';
 
+						// BUGFIX: Address error where PM2 claims the process is online but has exited already
+						if (status == 'online' && proc[0].pid === 0) status = 'stopped';
+
 						switch (status) {
 							case 'launching':
 							case 'online': // Still running - wait and try again
