@@ -303,7 +303,9 @@ Promise.resolve()
 	})
 	.then(()=> {
 		console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
+		console.log(colors.blue('[agents]'), 'Cleaning up...');
 		session.emit('end', session, agents)
+			.then(()=> console.log(colors.blue('[agents]'), 'Exit successfully'))
 			.then(()=> process.exit(0))
 	})
 	// }}}
