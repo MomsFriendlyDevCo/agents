@@ -273,7 +273,7 @@ function Agents(options) {
 	*/
 	agents.destroy = ()=>
 		Promise.resolve()
-			.then(()=> agents.emit('destroy'))
+			.then(()=> this.emit('destroy'))
 			.then(()=> Promise.all([
 				// Destroy all runners if they expose a 'destroy' function
 				()=> Promise.all(_.values(this.runners).filter(r => _.isFunction(r.destroy)).map(r => r.destroy())),
@@ -281,8 +281,7 @@ function Agents(options) {
 				// Destroy all caches
 				()=> Promise.all(_.values(this.caches).map(c => c.destroy())),
 			]))
-			.then(()=> agents.emit('destroyed'))
-			.then(()=> agents = null)
+			.then(()=> this.emit('destroyed'))
 
 
 	/**
