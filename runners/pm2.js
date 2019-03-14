@@ -33,7 +33,7 @@ module.exports = {
 				session.context.log('Spawning PM2 process', colors.cyan(this.procName));
 				pm2.start(session.settings.runner.pm2.execFile, {
 					name: this.procName,
-					args: [session.cacheKey], // NOTE: This doesn't work due to the way that PM2 wraps the node script, maybe one day it will be supported
+					args: [],
 					cwd: session.settings.runner.pm2.cwd,
 					env: session.settings.runner.pm2.env(session),
 					autorestart: false,
