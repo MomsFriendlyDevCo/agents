@@ -44,6 +44,6 @@
     "mocha-logger": "^1.0.6"
   },
   "optionalDependencies": {
-    "pm2": "^3.3.1"
+    "pm2": "^3.4.0"
   }
 }
