@@ -79,43 +79,6 @@ Promise.resolve()
 		}
 	})
 	// }}}
-	// Run in list mode (if --list) {{{
-	.then(()=> {
-		if (!program.list) return;
-
-		return Promise.resolve()
-			.then(()=> agents = new Agents(agentInitSettings))
-			.then(()=> agents.init())
-			.then(()=> {
-				var table = new Table({
-					head: ['Agent ID', 'Timing', 'Expires', 'Data?', 'Show?', 'Clear on build?', 'Methods'],
-					chars: {'mid': '', 'left-mid': '', 'mid-mid': '', 'right-mid': ''},
-				});
-
-				if (_.size(agents._agents)) {
-					_(agents._agents)
-						.keys()
-						.sort()
-						.forEach(id => {
-							table.push([
-								id,
-								agents._agents[id].timing || '',
-								agents._agents[id].expires || '',
-								agents._agents[id].hasReturn ? 'X' : '',
-								agents._agents[id].show ? 'X' : '',
-								agents._agents[id].clearOnBuild ? 'X' : '',
-								agents._agents[id].runners.join(', '),
-							]);
-						});
-
-					console.log(table.toString());
-				} else {
-					console.log('No agents found');
-				}
-			})
-			.then(()=> { throw new Error('QUIT') })
-	})
-	// }}}
 	// Detect human using TTY {{{
 	.then(()=> {
 		if (process.stdout.isTTY && !program.debug && program.human) {
@@ -145,6 +108,8 @@ Promise.resolve()
 			program.agent = program.args.pop();
 		} else if (program.args.length > 1) {
 			throw new Error('Only one agent can be run at a time');
+		} else if (program.list) {
+			// List mode - do nothing
 		} else {
 			throw new Error('No agent-id given!');
 		}
@@ -257,9 +222,42 @@ Promise.resolve()
 	})
  	.then(()=> agents.init())
 	.then(()=> {
-		if (!agents.has(program.agent)) throw new Error(`Invalid agent-id: "${program.agent}"`);
+		if (!program.list && !agents.has(program.agent)) throw new Error(`Invalid agent-id: "${program.agent}"`);
 	})
 	.then(()=> session.emit('postInit', session, agents))
+	// }}}
+	// Run in list mode (if --list) {{{
+	.then(()=> {
+		if (!program.list) return;
+
+		var table = new Table({
+			head: ['Agent ID', 'Timing', 'Expires', 'Data?', 'Show?', 'Clear on build?', 'Methods'],
+			chars: {'mid': '', 'left-mid': '', 'mid-mid': '', 'right-mid': ''},
+		});
+
+		if (_.size(agents._agents)) {
+			_(agents._agents)
+				.keys()
+				.sort()
+				.forEach(id => {
+					table.push([
+						id,
+						agents._agents[id].timing || '',
+						agents._agents[id].expires || '',
+						agents._agents[id].hasReturn ? 'X' : '',
+						agents._agents[id].show ? 'X' : '',
+						agents._agents[id].clearOnBuild ? 'X' : '',
+						agents._agents[id].runners.join(', '),
+					]);
+				});
+
+			console.log(table.toString());
+		} else {
+			console.log('No agents found');
+		}
+
+		throw new Error('QUIT');
+	})
 	// }}}
 	// Run the agent {{{
 	.then(()=> session.emit('preSession', session, agents))
