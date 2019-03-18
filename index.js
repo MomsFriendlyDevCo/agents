@@ -171,9 +171,11 @@ function Agents(options) {
 					.map(path => _.set(require(path), 'path', path))
 					.map(mod => _.defaults(mod, agents.settings.agentDefaults))
 					.filter(mod => {
-						var missing = ['id', 'hasReturn', 'worker'].find(i => !mod[i]);
-						if (missing) {
-							agents.emit('refreshWarn', mod.path, `file does not have the required key "${missing}" (or maybe look like a valid agent?) - skipped`);
+						var missing = ['id', 'hasReturn', 'worker']
+							.filter(f => !_.has(mod, f));
+
+						if (missing.length) {
+							agents.emit('refreshWarn', mod.path, `file does not have the required keys ${missing.map(m => `"${m}"`).join(', ')} (or maybe look like a valid agent?) - skipped`);
 							return false;
 						} else {
 							return true;
