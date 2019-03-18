@@ -250,18 +250,18 @@ function Agents(options) {
 	*/
 	agents.initCron = ()=>
 		Promise.all(
-			_.values(agents.agents).map(agent => {
+			_.values(agents._agents).map(agent => {
 				if (!agent.timing || !agents.settings.autoInstall) return; // No timing - don't bother registering
 				agent.cronJob = new CronJob({
 					cronTime: agent.timing,
 					onTick: ()=> {
-						agents.emit('tick', id);
-						agents.run(id);
+						agents.emit('tick', agent.id);
+						agents.run(agent.id);
 					},
 					start: true,
 				});
 
-				agents.emit('scheduled', id);
+				return agents.emit('scheduled', agent.id);
 			})
 		)
 	// }}}
