@@ -220,12 +220,13 @@ function Agents(options) {
 			.then(()=> agents.initCron()) // Setup all agent cron timings
 			.then(()=> { // Run all agents marked as immediate
 				if (!agents.settings.allowImmediate) return; // Immediate execution is disabled
-				return Promise.all(_.values(agents.agents)
-					.filter(agent => agent.immediate)
-					.map(agent => {
-						agents.emit('runImmediate', agent.id);
-						agents.run(agent.id);
-					})
+				return Promise.all(
+					_.values(agents._agents)
+						.filter(agent => agent.immediate)
+						.map(agent => {
+							agents.emit('runImmediate', agent.id);
+							agents.run(agent.id);
+						})
 				);
 			})
 			.then(()=> agents.emit('ready'))
