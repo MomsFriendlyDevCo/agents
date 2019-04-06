@@ -91,8 +91,8 @@ Promise.resolve()
 	.then(()=> {
 		_.defaults(program, {
 			maxTime: timestring(program.time || process.env.AGENT_TIMELIMIT || '15m'),
-			maxProcs: 4096,
-			maxFiles: 200,
+			maxProcs: 0,
+			maxFiles: 0,
 		});
 
 		if (!program.args.length && process.env.AGENT) { // No args and has ENV `AGENT`
