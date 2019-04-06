@@ -170,6 +170,7 @@ Agents have the following settings:
 | `triggers`  | `triggers` | `[]`       | Additional triggers that make the agent run. Examples could include things like `"boot"`, `"build"` etc.    |
 
 
+
 **Notes**:
 * All defaults are configurable in `agents.settings.agentDefaults`
 
