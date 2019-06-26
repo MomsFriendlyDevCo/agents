@@ -392,18 +392,21 @@ function Agents(options) {
 	* @param {boolean} [settings.lazy=false] If non-lazy (i.e. `true`) agent.run() will be invoked if no value was found rather than returning undefined
 	* @returns {Promise} A promise which resolves with the agent result
 	*/
-	agents.get = (id, agentSettings = {}, settings = {}) =>
-		Promise.resolve()
+	agents.get = (id, agentSettings = {}, settings = {}) => {
+		var session;
+		return Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings)) // Calculate a session or use the session given
 			// Try to access an existing cache value - resolve this promise chain if we have one, otherwise call run()
-			.then(session => {
-				var cache = agents.caches[session.cache][settings.cacheMethod || 'get'](session.cacheKey);
-				if (cache) {
-					return cache;
-				} else if (!settings.lazy) {
-					return agents.run(session);
-				}
+			.then(res => {
+				session = res;
+				return agents.caches[session.cache][settings.cacheMethod || 'get'](session.cacheKey);
 			})
+			.then(val =>
+				val ? val
+				: !settings.lazy ? agents.run(session)
+				: undefined
+			);
+	}
 
 
 	/**
