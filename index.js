@@ -397,10 +397,8 @@ function Agents(options) {
 		return Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings)) // Calculate a session or use the session given
 			// Try to access an existing cache value - resolve this promise chain if we have one, otherwise call run()
-			.then(res => {
-				session = res;
-				return agents.caches[session.cache][settings.cacheMethod || 'get'](session.cacheKey);
-			})
+			.then(res => session = res)
+			.then(() => agents.caches[session.cache][settings.cacheMethod || 'get'](session.cacheKey))
 			.then(val =>
 				val ? val
 				: !settings.lazy ? agents.run(session)
