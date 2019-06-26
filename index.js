@@ -344,16 +344,18 @@ function Agents(options) {
 			})
 			// }}}
 			// Create base session object {{{
-			.then(()=> session = {
-				agent: id,
-				agentSettings,
-				cacheKey: settings.cacheKey || agents.getKey(id, agentSettings),
-				runner: false,
-				cache: false,
-				startTime: Date.now(),
-				worker: agents._agents[id],
-				settings: agents.settings,
-				defer: agents.createDefer(),
+			.then(()=> {
+				return {
+					agent: id,
+					agentSettings,
+					cacheKey: settings.cacheKey || agents.getKey(id, agentSettings),
+					runner: false,
+					cache: false,
+					startTime: Date.now(),
+					worker: agents._agents[id],
+					settings: agents.settings,
+					defer: agents.createDefer(),
+				};
 			})
 			// }}}
 			// Determine runner {{{
@@ -394,12 +396,14 @@ function Agents(options) {
 		Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings)) // Calculate a session or use the session given
 			// Try to access an existing cache value - resolve this promise chain if we have one, otherwise call run()
-			.then(session => agents.caches[session.cache][settings.cacheMethod || 'get'](session.cacheKey))
-			.then(val =>
-				val ? val
-				: !settings.lazy ? agents.run(session)
-				: undefined
-			)
+			.then(session => {
+				var cache = agents.caches[session.cache][settings.cacheMethod || 'get'](session.cacheKey);
+				if (cache) {
+					return cache;
+				} else if (!settings.lazy) {
+					return agents.run(session);
+				}
+			})
 
 
 	/**
