@@ -172,9 +172,10 @@ function Agents(options) {
 						try {
 							_.set(require(path), 'path', path);
 						} catch (e) {
-							throw new Error(`Failed to parse "${path}" - ${e.toString()}`);
+							agents.emit('refreshWarn', `Failed to parse "${path}" - ${e.toString()}`);
 						}
 					})
+					.filter() // Remove failed modules
 					.map(mod => _.defaults(mod, agents.settings.agentDefaults))
 					.filter(mod => {
 						var missing = ['id', 'hasReturn', 'worker']
