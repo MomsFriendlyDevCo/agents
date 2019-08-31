@@ -168,7 +168,13 @@ function Agents(options) {
 			.then(()=> glob(agents.settings.paths, {ignore: ['node_modules']}))
 			.then(paths =>
 				agents._agents = _(paths)
-					.map(path => _.set(require(path), 'path', path))
+					.map(path => {
+						try {
+							_.set(require(path), 'path', path);
+						} catch (e) {
+							throw new Error(`Failed to parse "${path}" - ${e.toString()}`);
+						}
+					})
 					.map(mod => _.defaults(mod, agents.settings.agentDefaults))
 					.filter(mod => {
 						var missing = ['id', 'hasReturn', 'worker']
