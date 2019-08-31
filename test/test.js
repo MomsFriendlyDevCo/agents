@@ -16,4 +16,7 @@ describe('Query meta information', function() {
 			})
 	)
 
+	// TODO: `get`; should trigger agent
+	// TODO: `get`; should return cached results
+
 });
