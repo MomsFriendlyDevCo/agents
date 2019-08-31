@@ -170,7 +170,7 @@ function Agents(options) {
 				agents._agents = _(paths)
 					.map(path => {
 						try {
-							_.set(require(path), 'path', path);
+							return _.set(require(path), 'path', path);
 						} catch (e) {
 							agents.emit('refreshWarn', `Failed to parse "${path}" - ${e.toString()}`);
 						}
