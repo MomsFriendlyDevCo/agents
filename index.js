@@ -562,7 +562,10 @@ function Agents(options) {
 		])
 			.then(results => {
 				// Find the index of the most likely cache
-				var useCacheIndex = possibleCaches.findIndex((cache, i) => results[0][i] || results[1][i]);
+				var useCacheIndex = possibleCaches.findIndex((cache, i) =>
+					typeof results[0][i] !== 'undefined' ||
+					typeof results[1][i] !== 'undefined'
+				);
 
 				session.result = results[0][useCacheIndex];
 				session.progress = results[1][useCacheIndex];
@@ -571,7 +574,7 @@ function Agents(options) {
 					session.status = 'error';
 					session.error = session.result.error;
 				} else {
-					session.status = session.result ? 'complete' : 'pending';
+					session.status = typeof session.result !== 'undefined' ? 'complete' : 'pending';
 				}
 			})
 			.then(()=> session)
