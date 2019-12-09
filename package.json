@@ -36,6 +36,7 @@
     "globby": "^9.2.0",
     "lodash": "^4.17.11",
     "lodash-keyarrange": "^1.1.0",
+    "read-last-lines": "^1.7.1",
     "timestring": "^5.0.1"
   },
   "devDependencies": {

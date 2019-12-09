@@ -6,6 +6,7 @@ var async = require('async-chainable');
 var colors = require('chalk');
 var pm2 = require('pm2');
 var readable = require('@momsfriendlydevco/readable');
+var readLastLines = require('read-last-lines');
 var util = require('util');
 
 module.exports = {
@@ -72,7 +73,15 @@ module.exports = {
 								if (exitCode == 0) {
 									next();
 								} else {
-									next(`Non-zero exit code: ${exitCode}`);
+									// We may be able to retrieve actual output from logs
+									var logPath = _.get(proc, '0.pm2_env.pm_out_log_path', '');
+									if (logPath) {
+										readLastLines.read(logPath, 1)
+											.then((lines) => next(lines))
+											.catch(err => next(`Non-zero exit code: ${exitCode}`));
+									} else {
+										next(`Non-zero exit code: ${exitCode}`);
+									}
 								}
 								break;
 							case 'errored':

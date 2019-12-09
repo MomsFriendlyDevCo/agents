@@ -10,9 +10,11 @@ describe('Query meta information', function() {
 		agents.list()
 			.then(result => {
 				expect(result).to.be.an('array');
-				expect(result).to.have.length(1);
-				expect(result[0]).to.have.property('id', 'primes');
+				expect(result).to.have.length(2);
+				expect(result[0]).to.have.property('id', 'errors');
 				expect(result[0]).to.have.property('cacheKey');
+				expect(result[1]).to.have.property('id', 'primes');
+				expect(result[1]).to.have.property('cacheKey');
 			})
 	)
 
