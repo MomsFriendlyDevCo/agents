@@ -6,7 +6,6 @@ var async = require('async-chainable');
 var colors = require('chalk');
 var pm2 = require('pm2');
 var readable = require('@momsfriendlydevco/readable');
-var readLastLines = require('read-last-lines');
 var util = require('util');
 
 module.exports = {
