@@ -524,7 +524,7 @@ function Agents(options) {
 						.then(()=> agents.caches[session.cache].unset(`${session.cacheKey}-progress`)) // Reset progress marker
 						.then(()=> agents.runners[session.runner].exec(session))
 						.then(value => session.defer.resolve(value))
-						.catch(e => session.defer.reject(e))
+						.catch(session.defer.reject)
 						.finally(()=> delete agents._running[session.cacheKey])
 				});
 
