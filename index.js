@@ -570,12 +570,31 @@ function Agents(options) {
 				session.result = results[0][useCacheIndex];
 				session.progress = results[1][useCacheIndex];
 
-				// FIXME: Legacy. Instead check pm2 reported process status
-				if (_.isObject(session.result) && _.isEqual(_.keys(session.result), ['error'])) {
-					session.status = 'error';
-					session.error = session.result.error;
+				if (agents._running[id]) {
+					session.status = 'pending';
+				/*
+				} else if (session.runner === 'pm2') {
+					// TODO: Check pm2 reported process status
+					var procName = session.settings.runner.pm2.procName(session.cacheKey);
+					console.log('check pm2 status', procName);
+					var pm2 = require('pm2');
+					pm2.connect(() => {
+						console.log('connected');
+						pm2.describe(procName, (err, proc) => {
+							console.log('describe', err, proc);
+							if (err || !proc || !proc.length || _.isEqual(proc, [[]]) || _.isEqual(proc, [])) {
+								return session.status = (typeof session.result === 'undefined')?'error':'complete';
+							}; // Process doesn't exist - continue on
+							var status = _.get(proc, '0.pm2_env.status');
+							console.log('status', status);
+							// TODO: Translate pm2 status to completed/errored/pending
+							session.status = status;
+							pm2.disconnect();
+						});
+					});
+				*/
 				} else {
-					session.status = typeof session.result !== 'undefined' ? 'complete' : 'pending';
+					session.status = (typeof session.result === 'undefined')?'error':'complete';
 				}
 			})
 			.then(()=> session)

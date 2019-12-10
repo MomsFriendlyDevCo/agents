@@ -6,8 +6,8 @@
 * @param {number} [settings.finish=false] Return an error via finish callback
 * @param {number} [settings.exit=false] Exit process
 *
-* @example Retrieve an array of prime numbers
-* agents.get('errors', {throw: true}).then(result => { ... })
+* @example Throw an error
+* agents.get('errors', {throw: true}).catch(err => { ... })
 */
 var _ = require('lodash');
 
