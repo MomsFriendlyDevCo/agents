@@ -524,7 +524,7 @@ function Agents(options) {
 						.then(()=> agents.caches[session.cache].unset(`${session.cacheKey}-progress`)) // Reset progress marker
 						.then(()=> agents.runners[session.runner].exec(session))
 						.then(value => session.defer.resolve(value))
-						.catch(session.defer.reject)
+						.catch(e => session.defer.reject(e))
 						.finally(()=> delete agents._running[session.cacheKey])
 				});
 
@@ -570,6 +570,7 @@ function Agents(options) {
 				session.result = results[0][useCacheIndex];
 				session.progress = results[1][useCacheIndex];
 
+				// FIXME: Legacy. Instead check pm2 reported process status
 				if (_.isObject(session.result) && _.isEqual(_.keys(session.result), ['error'])) {
 					session.status = 'error';
 					session.error = session.result.error;
