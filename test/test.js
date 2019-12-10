@@ -38,32 +38,33 @@ describe('Query meta information', function() {
 
 		it('should return "pending" status when running', function(done) {
 			agents.run('session', {complete: false, foo: 'pending'}, {runner: 'pm2', want: 'session'})
-				.then(session => new Promise((resolve) => setTimeout(() => resolve(session), 1000)))
 				.then(session => agents.getSession(session))
 				.then(session => {
 					expect(session).to.have.property('status', 'pending');
 					expect(session).to.have.property('cacheKey');
 
-					var procName = session.settings.runner.pm2.procName(session.cacheKey);
-					pm2.delete(procName, done);
-				});
+					// Give process a moment to actually start
+					setTimeout(() => {
+						var procName = session.settings.runner.pm2.procName(session.cacheKey);
+						pm2.delete(procName, done);
+					}, 1000);
+				})
 		});
 
 		// TODO: Method to have a pm2 process in "stopped" or "errored" state without crashing this process?
 		xit('should return "error" status when stopped', function(done) {
 			agents.run('session', {complete: false, foo: 'error'}, {runner: 'pm2', want: 'session'})
-				.then(session => new Promise((resolve) => setTimeout(() => resolve(session), 1000)))
+				//.then(session => new Promise((resolve) => setTimeout(() => resolve(session), 1000)))
 				.then(session => agents.getSession(session))
 				.then(session => {
 					expect(session).to.have.property('status', 'pending');
 					expect(session).to.have.property('cacheKey');
-					
-					var procName = session.settings.runner.pm2.procName(session.cacheKey);
-					
-					console.log('procName', procName);
-					pm2.stop(procName);
-					//pm2.delete(procName, done);
-					setTimeout(done, 5000);
+
+					// Give process a moment to actually start
+					setTimeout(() => {
+						var procName = session.settings.runner.pm2.procName(session.cacheKey);
+						pm2.stop(procName, done);
+					}, 1000);
 				});
 		});
 
