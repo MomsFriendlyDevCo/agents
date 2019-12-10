@@ -4,6 +4,7 @@
 * @param {Object} [settings] Settings
 * @param {number} [settings.throw=false] Throw an error within the agent
 * @param {number} [settings.finish=false] Return an error via finish callback
+* @param {number} [settings.exit=false] Exit process
 *
 * @example Retrieve an array of prime numbers
 * agents.get('errors', {throw: true}).then(result => { ... })
