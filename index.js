@@ -571,28 +571,31 @@ function Agents(options) {
 				session.progress = results[1][useCacheIndex];
 
 				if (agents._running[id]) {
-					session.status = 'pending';
-				/*
-				} else if (session.runner === 'pm2') {
-					// TODO: Check pm2 reported process status
-					var procName = session.settings.runner.pm2.procName(session.cacheKey);
-					console.log('check pm2 status', procName);
-					var pm2 = require('pm2');
-					pm2.connect(() => {
-						console.log('connected');
-						pm2.describe(procName, (err, proc) => {
-							console.log('describe', err, proc);
-							if (err || !proc || !proc.length || _.isEqual(proc, [[]]) || _.isEqual(proc, [])) {
-								return session.status = (typeof session.result === 'undefined')?'error':'complete';
-							}; // Process doesn't exist - continue on
-							var status = _.get(proc, '0.pm2_env.status');
-							console.log('status', status);
-							// TODO: Translate pm2 status to completed/errored/pending
-							session.status = status;
-							pm2.disconnect();
-						});
-					});
-				*/
+					if (session.runner === 'pm2') {
+						try {
+							var procName = session.settings.runner.pm2.procName(id);
+							var pm2 = require('pm2');
+							pm2.connect(() => {
+								console.log('connected');
+								pm2.describe(procName, (err, proc) => {
+									console.log('describe', err, proc.name || null);
+									pm2.disconnect(() => {
+										if (err || !proc || !proc.length || _.isEqual(proc, [[]]) || _.isEqual(proc, [])) {
+											return session.status = (typeof session.result === 'undefined')?'error':'complete';
+										}; // Process doesn't exist - continue on
+										var status = _.get(proc, '0.pm2_env.status');
+										session.status = (status === 'online')?'pending':'error';
+										console.log('status', status, session.status);
+									});
+								});
+							});
+						} catch(e) {
+							console.log('e', e);
+							session.status = 'error';
+						}
+					} else {
+						session.status = 'pending';
+					}
 				} else {
 					session.status = (typeof session.result === 'undefined')?'error':'complete';
 				}
