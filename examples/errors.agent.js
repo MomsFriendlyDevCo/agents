@@ -21,6 +21,7 @@ module.exports = {
 		_.defaults(settings, {
 			throw: false,
 			finish: false,
+			exit: false,
 		});
 
 		if (settings.throw)
@@ -28,6 +29,9 @@ module.exports = {
 
 		if (settings.finish)
 			return finish('ERROR', []);
+
+		if (settings.exit)
+			process.exit(1);
 
 	},
 };
