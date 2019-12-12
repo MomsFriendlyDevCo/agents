@@ -9,6 +9,7 @@ module.exports = {
 		try {
 			async.run(session.context, session.worker.worker, (err, value) => {
 				if (err) {
+					// TODO: Store error in special cache key for later accurate status report
 					reject(err);
 				} else if (_.isString(session.worker.expires) && session.worker.expires) { // Stash value with an expiry
 					var expiry = new Date(Date.now() + (timestring(session.worker.expires) * 1000));
@@ -28,6 +29,7 @@ module.exports = {
 				}
 			}, [session.agentSettings, session]);
 		} catch(err) {
+			// TODO: Store error in special cache key for later accurate status report
 			reject(err.message);
 		}
 	}),
