@@ -24,20 +24,18 @@ describe('Query meta information', function() {
 	// TODO: `get`; should trigger agent
 	// TODO: `get`; should return cached results
 
-
 	describe('getSession', function() {
 		beforeEach(function(done) {
 			pm2.connect(done);
 		});
 
-		/*
-		xafterEach(function(done) {
-			if (pm2.client_sock.connected == true && pm2.client_sock.closing == false)
-				pm2.disconnect(done);
+		afterEach(function(done) {
+			if (pm2.client_sock && pm2.client_sock.connected == true && pm2.client_sock.closing == false)
+				pm2.disconnect();
+			done();
 		});
-		*/
 
-		xit('should return "pending" status when running', function(done) {
+		it('should return "pending" status when running', function(done) {
 			agents.run('session', {complete: false, foo: 'pending'}, {runner: 'pm2', want: 'session'})
 				.then(session => agents.getSession(session))
 				.then(session => {
@@ -53,7 +51,7 @@ describe('Query meta information', function() {
 		});
 
 		// TODO: Method to have a pm2 process in "stopped" or "errored" state without crashing this process?
-		it('should return "error" status when stopped', function(done) {
+		xit('should return "error" status when stopped', function(done) {
 			agents.run('session', {complete: false, foo: 'error'}, {runner: 'pm2', want: 'session'})
 				.then(session => agents.getSession(session))
 				.then(session => {
@@ -66,8 +64,6 @@ describe('Query meta information', function() {
 							// FIXME: Catch when process not found?
 							//var procName = session.settings.runner.pm2.procName(session.cacheKey);
 							//pm2.stop(procName, () => {
-								// Wait again??
-								// FIXME: Sometimes `pending`, sometimes `error`??
 								mlog.log('session.status', session.status);
 								setTimeout(() => resolve(session), 2000);
 							//});
@@ -76,12 +72,14 @@ describe('Query meta information', function() {
 				}).then(session => {
 					expect(session).to.have.property('status', 'error');
 					expect(session).to.have.property('cacheKey');
-					done();
+
+					var procName = session.settings.runner.pm2.procName(session.cacheKey);
+					pm2.delete(procName, done);
 				})
 		});
 
 		// FIXME: May fail with cached result?
-		xit('should return "complete" status when finished', function() {
+		it('should return "complete" status when finished', function() {
 			return agents.run('session', {complete: true}, {runner: 'pm2'})
 				.then(result => {
 					expect(result).to.be.an('array');

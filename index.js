@@ -570,34 +570,13 @@ function Agents(options) {
 				session.result = results[0][useCacheIndex];
 				session.progress = results[1][useCacheIndex];
 
+				// FIXME: "stopped" pm2 processes may misreport status
 				if (agents._running[id]) {
-					if (session.runner === 'pm2') {
-						try {
-							var procName = session.settings.runner.pm2.procName(id);
-							var pm2 = require('pm2');
-							pm2.connect(() => {
-								console.log('connected');
-								pm2.describe(procName, (err, proc) => {
-									console.log('describe', err, proc.name || null);
-									pm2.disconnect(() => {
-										if (err || !proc || !proc.length || _.isEqual(proc, [[]]) || _.isEqual(proc, [])) {
-											return session.status = (typeof session.result === 'undefined')?'error':'complete';
-										}; // Process doesn't exist - continue on
-										var status = _.get(proc, '0.pm2_env.status');
-										session.status = (status === 'online')?'pending':'error';
-										console.log('status', status, session.status);
-									});
-								});
-							});
-						} catch(e) {
-							console.log('e', e);
-							session.status = 'error';
-						}
-					} else {
-						session.status = 'pending';
-					}
+					session.status = 'pending';
+				} else if (typeof session.result !== 'undefined') {
+					session.status = 'complete';
 				} else {
-					session.status = (typeof session.result === 'undefined')?'error':'complete';
+					session.status = 'error';
 				}
 			})
 			.then(()=> session)
