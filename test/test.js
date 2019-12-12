@@ -78,7 +78,7 @@ describe('Query meta information', function() {
 				})
 		});
 
-		// FIXME: May fail with cached result?
+		// FIXME: May fail with cached result? Add an epoch to the settings so hash is unique?
 		it('should return "complete" status when finished', function() {
 			return agents.run('session', {complete: true}, {runner: 'pm2'})
 				.then(result => {
