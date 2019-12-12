@@ -573,7 +573,11 @@ function Agents(options) {
 				// FIXME: "stopped" pm2 processes may misreport status
 				if (agents._running[id]) {
 					session.status = 'pending';
-				} else if (typeof session.result !== 'undefined') {
+				// NOTE: Legacy; Not aware of anywhere setting `session.result.error`
+				} else if (_.isObject(session.result) && _.isEqual(_.keys(session.result), ['error'])) {
+					session.status = 'error';
+					session.error = session.result.error;
+				} else if (_.isObject(session.result)) {
 					session.status = 'complete';
 				} else {
 					session.status = 'error';
