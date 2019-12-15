@@ -72,7 +72,8 @@ module.exports = {
 								if (exitCode == 0) {
 									next();
 								} else {
-									next(`Non-zero exit code: ${exitCode}`);
+									var logPath = _.get(proc, '0.pm2_env.pm_err_log_path', '');
+									next(`Non-zero exit code: ${exitCode} see ${logPath}`);
 								}
 								break;
 							case 'errored':

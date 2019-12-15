@@ -570,11 +570,17 @@ function Agents(options) {
 				session.result = results[0][useCacheIndex];
 				session.progress = results[1][useCacheIndex];
 
-				if (_.isObject(session.result) && _.isEqual(_.keys(session.result), ['error'])) {
+				// FIXME: "stopped" pm2 processes may misreport status
+				if (agents._running[id]) {
+					session.status = 'pending';
+				// NOTE: Legacy; Not aware of anywhere setting `session.result.error`
+				} else if (_.isObject(session.result) && _.isEqual(_.keys(session.result), ['error'])) {
 					session.status = 'error';
 					session.error = session.result.error;
+				} else if (_.isObject(session.result)) {
+					session.status = 'complete';
 				} else {
-					session.status = typeof session.result !== 'undefined' ? 'complete' : 'pending';
+					session.status = 'error';
 				}
 			})
 			.then(()=> session)

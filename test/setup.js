@@ -4,7 +4,10 @@ var mlog = require('mocha-logger');
 var agents = new Agents({
 });
 
-before('Init agent instance', ()=> agents.init());
+before('Init agent instance', (done) => {
+	agents.init()
+		.then(() => done());
+});
 
 before('Setup emitter handlers', ()=> {
 	agents
@@ -18,7 +21,7 @@ before('Setup emitter handlers', ()=> {
 		.on('scheduled', id => mlog.log('Installed agent', id, 'with timing', agents.agents[id].timing))
 		.on('runImmediate', id => mlog.log('Agent', id, 'marked for immediate run!'))
 		.on('log', (session, ...args) => mlog.log(...args))
-		.on('warn', (session, ...args) => mlog.log('Warning', ...args))
+		.on('warn', (session, ...args) => mlog.log('Warning', ...args));
 });
 
 after(()=> agents.destroy());
