@@ -74,6 +74,9 @@ module.exports = {
 									if (!session.settings.runner.pm2.logFileScan) return next();
 									// NOTE: Due to the insane way PM2 doesn't let you know if a process was zapped by it we have to watch the logs, fetch backwards for X lines, scope for stuff relevent to our process then filter by that
 									var procStarted = new Date(_.get(proc, '0.pm2_env.created_at'));
+									procStarted.setMilliseconds(0); // Remove millisecond component as PM2 doesn't have this same grain
+
+									var procName = _.get(proc, '0.pm2_env.name');
 									var fileHandle;
 									Promise.resolve()
 										.then(()=> fs.promises.open(session.settings.runner.pm2.logFilePath))
@@ -89,14 +92,22 @@ module.exports = {
 											.slice(-5)
 											.map(line => {
 												var bits;
-												if (bits = /^(?<date>[0-9\-T:]+?): PM2 log: pid=(?<pid>[0-9]+) msg=(?<msg>.*)$/.exec(line)) {
+												if (bits = /^(?<date>[\d\-T:]+?): PM2 log: pid=(?<pid>\d+) msg=(?<msg>.*)$/.exec(line)) {
 													return {
 														...bits.groups,
 														type: 'processKill',
 														pid: parseInt(bits.groups.pid),
 														date: new Date(bits.groups.date),
 													}
-												} else if (bits = /^(?<date>[0-9\-T:]+?): PM2 log: PM2 successfully stopped$/.exec(line)) {
+												} else if (bits = /^(?<date>[\d\-T:]+?): PM2 log: App \[(?<name>.+?):(?<instance>\d+)\] exited with code \[(?<exitCode>\d+)\] via signal \[(?<signal>SIGTERM|SIGKILL)\]$/.exec(line)) {
+													return {
+														...bits.groups,
+														type: 'processSignal',
+														instance: parseInt(bits.groups.instance),
+														exitCode: parseInt(bits.groups.exitCode),
+														date: new Date(bits.groups.date),
+													};
+												} else if (bits = /^(?<date>[\d\-T:]+?): PM2 log: PM2 successfully stopped$/.exec(line)) {
 													return {type: 'pm2Kill'};
 												}
 											})
@@ -109,14 +120,22 @@ module.exports = {
 														&& item.date >= procStarted // Has occured since we started the process
 													)
 													|| (
+														item.type == 'processSignal'
+														&& item.name == procName
+														&& item.date >= procStarted
+													)
+													|| (
 														item.type == 'pm2Kill'
 													)
 												)
 											)
 										)
 										.then(items => {
+											var match;
 											if (items.some(item => item.type == 'processKill')) {
-												next('Process killed');
+												next('Process killed by PM2');
+											} else if (match = items.find(item => item.type == 'processSignal')) {
+												next(`Proceess killed by system (${match.signal} exit code ${match.exitCode})`);
 											} else if (items.some(item => item.type == 'pm2Kill')) {
 												next('PM2 God is dead');
 											} else {
