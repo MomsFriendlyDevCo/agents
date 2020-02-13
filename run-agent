@@ -70,11 +70,18 @@ program
 var session = {};
 
 var handleError = e => {
-	if (e.toString() == 'Error: QUIT') return process.exit(0); // Exit quietly without error
-	console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent', colors.cyan(program.agent));
-	if (e !== 1 && Object.prototype.hasOwnProperty(session, 'emit'))
-		session.emit('end', session, agents)
-			.then(()=> process.exit(1))
+	if (e === 1 || e.toString() == 'Error: QUIT') return; // Exit quietly without error
+
+	console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent "'+e.message+'"', colors.cyan(program.agent));
+	if (Object.prototype.hasOwnProperty(session, 'emit')) {
+		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
+		return session.emit('end', session, agents)
+		.then(()=> console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent)))
+		.then(()=> process.exit(1));
+	} else {
+		console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent));
+		process.exit(1)
+	}
 };
 
 process.on('exit', handleError);
@@ -308,11 +315,13 @@ Promise.resolve()
 	// }}}
 	// End {{{
 	.catch(handleError)
-	.then(()=> {
+	.finally(()=> {
 		console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
-		console.log(colors.blue('[agents]'), 'Cleaning up...');
-		session.emit('end', session, agents)
-			.then(()=> console.log(colors.blue('[agents]'), 'Exit successfully'))
-			.then(()=> process.exit(0))
+		if (process.exitCode !== 0) return; // Already exited.
+
+		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
+		return session.emit('end', session, agents)
+			.then(()=> console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(program.agent)))
+			.then(()=> process.exit(0));
 	})
 	// }}}
