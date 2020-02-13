@@ -4,6 +4,7 @@
 var _ = require('lodash');
 var async = require('async-chainable');
 var colors = require('chalk');
+var fs = require('fs');
 var pm2 = require('pm2');
 var readable = require('@momsfriendlydevco/readable');
 var util = require('util');
@@ -52,12 +53,12 @@ module.exports = {
 				var checkProcess = ()=> {
 					pm2.describe(this.procName, (err, proc) => {
 						if (err) return next(err);
+
 						var status =
 							_.isEqual(proc, [[]]) && _.isEqual(proc, []) ? 'stopped'
 							: _.has(proc, '0.pm2_env.status') ? proc[0]['pm2_env'].status
 							: 'unknown';
 
-						// BUGFIX: Address error where PM2 claims the process is online but has exited already
 						if (status == 'online' && proc[0].pid === 0) status = 'stopped';
 
 						switch (status) {
@@ -70,7 +71,58 @@ module.exports = {
 							case 'stopped':
 								var exitCode = _.get(proc, '0.pm2_env.exit_code', 0);
 								if (exitCode == 0) {
-									next();
+									if (!session.settings.runner.pm2.logFileScan) return next();
+									// NOTE: Due to the insane way PM2 doesn't let you know if a process was zapped by it we have to watch the logs, fetch backwards for X lines, scope for stuff relevent to our process then filter by that
+									var procStarted = new Date(_.get(proc, '0.pm2_env.created_at'));
+									var fileHandle;
+									Promise.resolve()
+										.then(()=> fs.promises.open(session.settings.runner.pm2.logFilePath))
+										.then(fh => fileHandle = fh)
+										.then(()=> fileHandle.stat())
+										.then(stats => fileHandle.read(Buffer.alloc(session.settings.runner.pm2.logFileTailSize), 0, session.settings.runner.pm2.logFileTailSize, stats.size - session.settings.runner.pm2.logFileTailSize))
+										.then(res => {
+											fileHandle.close();
+											return res.buffer.toString()
+										})
+										.then(content => content
+											.split('\n')
+											.slice(-5)
+											.map(line => {
+												var bits;
+												if (bits = /^(?<date>[0-9\-T:]+?): PM2 log: pid=(?<pid>[0-9]+) msg=(?<msg>.*)$/.exec(line)) {
+													return {
+														...bits.groups,
+														type: 'processKill',
+														pid: parseInt(bits.groups.pid),
+														date: new Date(bits.groups.date),
+													}
+												} else if (bits = /^(?<date>[0-9\-T:]+?): PM2 log: PM2 successfully stopped$/.exec(line)) {
+													return {type: 'pm2Kill'};
+												}
+											})
+											.filter(item =>
+												item // Remove empty data
+												&& (
+													(
+														item.type == 'processKill'
+														&& item.pid == this.pid
+														&& item.date >= procStarted // Has occured since we started the process
+													)
+													|| (
+														item.type == 'pm2Kill'
+													)
+												)
+											)
+										)
+										.then(items => {
+											if (items.some(item => item.type == 'processKill')) {
+												next('Process killed');
+											} else if (items.some(item => item.type == 'pm2Kill')) {
+												next('PM2 God is dead');
+											} else {
+												next();
+											}
+										})
 								} else {
 									var logPath = _.get(proc, '0.pm2_env.pm_err_log_path', '');
 									next(`Non-zero exit code: ${exitCode} see ${logPath}`);

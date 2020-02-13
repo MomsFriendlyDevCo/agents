@@ -21,18 +21,24 @@ module.exports = {
 
 		_.defaults(settings, {
 			throw: false,
-			finish: false,
-			exit: false,
+			exitCode: 0,
+			wait: 1000,
+			payload: {foo: 123},
 		});
 
 		if (settings.throw)
 			throw new Error('ERROR');
 
-		if (settings.finish)
-			return finish('ERROR', []);
+		if (settings.reject)
+			return Promise.reject('ERROR');
 
-		if (settings.exit)
-			process.exit(1);
+		if (settings.exitCode > 0)
+			return process.exit(settings.exitCode);
 
+		agent.log('Waiting', settings.wait + 'ms', 'before exiting');
+		setTimeout(()=> {
+			agent.log('Exiting with payload', settings.payload);
+			finish(null, settings.payload);
+		}, settings.wait);
 	},
 };
