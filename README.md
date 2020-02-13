@@ -58,6 +58,9 @@ The following settings are supported (in dotted form):
 | `runner.pm2.execFileInterpreterArgs` | `array`      | See code                       | Arguments passed to the interpreter of `run-agent`                                                                                                        |
 | `runner.pm2.cwd`                     | `string`     | `${__dirname}`                 | The working directory of the `run-agent` file                                                                                                             |
 | `runner.pm2.env`                     | `function`   | See code                       | The environment to pass to the `run-agent` file                                                                                                           |
+| `runner.pm2.logFileScan`             | `boolean`    | `true`                         | Examine the main pm2 log file to determine additional detail if PM2 claims a process exited correctly |
+| `runner.pm2.logFilePath`             | `boolean`    | `$HOME/.pm2/pm2.log`           | Log file to examine for process exit information |
+| `runner.pm2.logFileTailSize`         | `number`     | `2048`                         | How many bytes backwards from the end of the main PM2 log file to read |
 | `agentDefaults`                      | `object`     | See code                       | Options set as defaults when reading in each agent file                                                                                                   |
 
 

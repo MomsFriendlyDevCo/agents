@@ -82,9 +82,9 @@ function Agents(options) {
 					AGENT_CACHE: session.cache,
 					AGENT_LAMBDA: 1,
 				}),
-				logFileScan: true, // Examine the main pm2 log file to determine additional detail if PM2 claims a process exited correctly
+				logFileScan: true, //
 				logFilePath: `${process.env.HOME}/.pm2/pm2.log`,
-				logFileTailSize: 2048, // How many bytes backwards from the end of the main PM2 log file to read
+				logFileTailSize: 2048,
 			},
 		},
 
