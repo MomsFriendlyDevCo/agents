@@ -84,9 +84,9 @@ var handleError = e => {
 	}
 };
 
-process.on('exit', handleError);
-process.on('SIGINT', handleError);
-process.on('SIGTERM', handleError);
+//process.on('exit', handleError);
+//process.on('SIGINT', handleError);
+//process.on('SIGTERM', handleError);
 process.on('uncaughtException', handleError);
 process.on('unhandledRejection', handleError);
 

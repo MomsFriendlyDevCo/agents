@@ -45,6 +45,7 @@ describe('Query meta information', function() {
 					// Give process a moment to actually start
 					setTimeout(() => {
 						var procName = session.settings.runner.pm2.procName(session.cacheKey);
+						// FIXME: Hangs here if process is already gone or does not yet exist?
 						pm2.delete(procName, done);
 					}, 2000);
 				})
