@@ -25,7 +25,7 @@
   "dependencies": {
     "@momsfriendlydevco/cache": "^1.6.1",
     "@momsfriendlydevco/eventer": "^1.4.0",
-    "@momsfriendlydevco/readable": "^1.2.0",
+    "@momsfriendlydevco/readable": "^1.2.1",
     "async-chainable": "^2.6.1",
     "chalk": "^3.0.0",
     "cli-table3": "^0.5.1",

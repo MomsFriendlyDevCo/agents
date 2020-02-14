@@ -24,6 +24,7 @@ var os = require('os');
 var spawn = require('child_process').spawn;
 var program = require('commander');
 var promisify = require('util').promisify;
+var readable = require('@momsfriendlydevco/readable');
 var Table = require('cli-table3');
 var timestring = require('timestring');
 var util = require('util');
@@ -190,7 +191,7 @@ Promise.resolve()
 			}
 			if (program.maxRam > 0) {
 				args.push(`--data=${program.maxRam}`);
-				limits.push('RAM=' + colors.cyan(program.maxRam));
+				limits.push('RAM=' + colors.cyan(readable.fileSize(program.maxRam)));
 			}
 			if (program.maxProcs > 0) {
 				args.push(`--nproc=${program.maxProcs}`);
