@@ -318,7 +318,7 @@ Promise.resolve()
 	.catch(handleError)
 	.finally(()=> {
 		console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
-		if (process.exitCode !== 0) return; // Already exited.
+		if (process.exitCode) return; // Already exited.
 
 		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
 		return session.emit('end', session, agents)
