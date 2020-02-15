@@ -79,7 +79,7 @@ module.exports = {
 									var procName = _.get(proc, '0.pm2_env.name');
 									var fileHandle;
 									Promise.resolve()
-										.then(()=> fs.promises.open(session.settings.runner.pm2.logFilePath))
+										.then(()=> fs.promises.open(session.settings.runner.pm2.logFilePath, 'r'))
 										.then(fh => fileHandle = fh)
 										.then(()=> fileHandle.stat())
 										.then(stats => fileHandle.read(Buffer.alloc(session.settings.runner.pm2.logFileTailSize), 0, session.settings.runner.pm2.logFileTailSize, stats.size - session.settings.runner.pm2.logFileTailSize))
