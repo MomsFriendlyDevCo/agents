@@ -73,7 +73,13 @@ var session = {};
 var handleError = e => {
 	if (e === 1 || e.toString() == 'Error: QUIT') return; // Exit quietly without error
 
-	console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent "'+e.message+'"', colors.cyan(program.agent));
+	// Print the entire `e` object when `e.message` is not defined.
+	if (!e.message) {
+		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent', e, colors.cyan(program.agent));
+	} else {
+		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent "'+e.message+'"', colors.cyan(program.agent));
+	}
+
 	if (Object.prototype.hasOwnProperty(session, 'emit')) {
 		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
 		return session.emit('end', session, agents)
