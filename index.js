@@ -26,7 +26,7 @@ var async = require('async-chainable');
 var cache = require('@momsfriendlydevco/cache');
 var colors = require('chalk');
 var crypto = require('crypto');
-var CronJob = require('cron').CronJob;
+var scheduler = require('@momsfriendlydevco/scheduler');
 var cronTranslate = require('cronstrue').toString;
 var eventer = require('@momsfriendlydevco/eventer');
 var fspath = require('path');
@@ -263,14 +263,13 @@ function Agents(options) {
 		Promise.all(
 			_.values(agents._agents).map(agent => {
 				if (!agent.timing || !agents.settings.autoInstall) return; // No timing - don't bother registering
-				agent.cronJob = new CronJob({
-					cronTime: agent.timing,
-					onTick: ()=> {
+				agent.cronJob = new scheduler.Task(
+					agent.timing,
+					()=> {
 						agents.emit('tick', agent.id);
-						agents.run(agent.id);
-					},
-					start: true,
-				});
+						return agents.run(agent.id);
+					}
+				);
 
 				return agents.emit('scheduled', agent.id);
 			})
