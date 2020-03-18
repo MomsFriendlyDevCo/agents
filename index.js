@@ -239,6 +239,7 @@ function Agents(options) {
 						})
 				);
 			})
+			.then(()=> scheduler.start())
 			.then(()=> agents.emit('ready'))
 			.then(()=> this)
 
@@ -293,6 +294,7 @@ function Agents(options) {
 				// Destroy all caches
 				()=> Promise.all(_.values(this.caches).map(c => c.destroy())),
 			]))
+			.then(()=> scheduler.pause())
 			.then(()=> this.emit('destroyed'))
 
 
@@ -598,7 +600,7 @@ function Agents(options) {
 	agents.invalidate = (id, agentSettings, settings) =>
 		Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings))
-			.then(session => agent.caches[session.cache].unset(session.cacheKey))
+			.then(session => agents.caches[session.cache].unset(session.cacheKey))
 
 
 	/**
