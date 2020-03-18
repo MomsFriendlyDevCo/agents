@@ -2,8 +2,8 @@ var expect = require('chai').expect;
 var mlog = require('mocha-logger');
 var pm2 = require('pm2');
 
+var agents = require('./setup');
 describe('Query meta information', function() {
-	var agents = require('./setup');
 	this.timeout(30 * 1000);
 
 	it('should get a list of available agents', ()=>

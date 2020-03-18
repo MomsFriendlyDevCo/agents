@@ -1,8 +1,8 @@
 var expect = require('chai').expect;
 var mlog = require('mocha-logger');
 
+var agents = require('./setup');
 describe('Calculate prime numbers an agent', function() {
-	var agents = require('./setup');
 	this.timeout(30 * 1000);
 
 	it('should calculate prime numbers inline', ()=>

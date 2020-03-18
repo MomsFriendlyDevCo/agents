@@ -2,8 +2,8 @@ var exec = require('child_process').exec;
 var expect = require('chai').expect;
 var mlog = require('mocha-logger');
 
+var agents = require('./setup');
 describe('Catching errors from within an agent', function() {
-	var agents = require('./setup');
 	this.timeout(30 * 1000);
 
 	describe('Runner: inline', function() {
