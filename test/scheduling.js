@@ -10,7 +10,12 @@ var wait = function(delay) {
 describe('Ensuring scheduling is queued', function() {
 	this.timeout(20 * 1000);
 
+	before(()=> {
+		agents.settings.runner.calculate = ()=> 'pm2';
+	});
+
 	beforeEach(() => {
+		agents.invalidate('timed_errors');
 		agents.invalidate('timed0');
 		agents.invalidate('timed1');
 	});

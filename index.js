@@ -520,8 +520,6 @@ function Agents(options) {
 			.then(session => {
 				if (agents._running[session.cacheKey]) return agents._running[session.cacheKey].defer.promise; // If an agent is already running attach to its defer and complete
 
-				agents._running[session.cacheKey] = session;
-
 				// Exit when runner isn't within supported methods.
 				if (session.worker.methods.indexOf(session.runner) === -1) {
 					if (!settings.want || settings.want == 'promise') { // Want promise
@@ -534,6 +532,8 @@ function Agents(options) {
 						throw new Error(`Unkown want type: "${settings.want}"`);
 					}
 				}
+
+				agents._running[session.cacheKey] = session;
 
 				setTimeout(()=> { // Queue in next cycle so we can return the promise object for now
 					Promise.resolve()

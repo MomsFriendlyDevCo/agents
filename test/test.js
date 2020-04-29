@@ -10,7 +10,7 @@ describe('Query meta information', function() {
 		agents.list()
 			.then(result => {
 				expect(result).to.be.an('array');
-				expect(result).to.have.length(4);
+				expect(result).to.have.length(6);
 				// FIXME: Array order is not guarenteed
 				//expect(result[0]).to.have.property('id', 'errors');
 				expect(result[0]).to.have.property('cacheKey');
