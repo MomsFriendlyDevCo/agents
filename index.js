@@ -522,6 +522,19 @@ function Agents(options) {
 
 				agents._running[session.cacheKey] = session;
 
+				// Exit when runner isn't within supported methods.
+				if (session.worker.methods.indexOf(session.runner) === -1) {
+					if (!settings.want || settings.want == 'promise') { // Want promise
+						return session.defer.reject;
+					} else if (settings.want == 'session') {
+						session.status = 'error';
+						session.result = undefined;
+						return session;
+					} else {
+						throw new Error(`Unkown want type: "${settings.want}"`);
+					}
+				}
+
 				setTimeout(()=> { // Queue in next cycle so we can return the promise object for now
 					Promise.resolve()
 						.then(()=> agents.emit('run', session))
