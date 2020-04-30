@@ -521,6 +521,7 @@ function Agents(options) {
 				if (agents._running[session.cacheKey]) return agents._running[session.cacheKey].defer.promise; // If an agent is already running attach to its defer and complete
 
 				// Exit when runner isn't within supported methods.
+				// FIXME: Simply throw when attempting to run with an unsupported runner?
 				if (session.worker.methods.indexOf(session.runner) === -1) {
 					if (!settings.want || settings.want == 'promise') { // Want promise
 						return session.defer.reject;

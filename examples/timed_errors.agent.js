@@ -16,7 +16,7 @@ module.exports = {
 	timing: '*/2 * * * * *', // 2 seconds
 	hasReturn: true,
 	methods: ['pm2'],
-	expires: '3s',
+	//expires: '3s',
 	worker: function(finish, settings) {
 		var agent = this;
 

@@ -13,7 +13,7 @@ module.exports = {
 	timing: '*/5 * * * * *', // 5 seconds
 	hasReturn: true,
 	methods: ['aws', 'pm2', 'inline'],
-	expires: '6s',
+	//expires: '6s',
 	worker: function(finish, settings) {
 		var agent = this;
 
