@@ -1,5 +1,6 @@
 var expect = require('chai').expect;
 var mlog = require('mocha-logger');
+var pm2 = require('pm2');
 
 var agents = require('./setup');
 
@@ -14,10 +15,23 @@ describe('Ensuring scheduling is queued', function() {
 		agents.settings.runner.calculate = ()=> 'pm2';
 	});
 
-	beforeEach(() => {
+	beforeEach(done => {
 		agents.invalidate('timed_errors');
 		agents.invalidate('timed0');
 		agents.invalidate('timed1');
+		pm2.connect(done);
+	});
+
+	afterEach(function(done) {
+		agents.list().then(list => {
+			list.forEach(a => {
+				if (!a.timing || a.methods.indexOf('pm2') === -1) return;
+				pm2.delete(a.cacheKey, e => {});
+			});
+		});
+		if (pm2.client_sock && pm2.client_sock.connected == true && pm2.client_sock.closing == false)
+			pm2.disconnect();
+		done();
 	});
 
 	it('should have no result immediately after invalidate', ()=> {

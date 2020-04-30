@@ -10,7 +10,7 @@ var _ = require('lodash');
 
 module.exports = {
 	id: 'timed1',
-	timing: '*/5 * * * * *', // 10 seconds
+	timing: '*/10 * * * * *', // 10 seconds
 	hasReturn: true,
 	methods: ['aws', 'pm2', 'inline'],
 	//expires: '11s',
