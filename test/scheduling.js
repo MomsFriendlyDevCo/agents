@@ -29,8 +29,12 @@ describe('Ensuring scheduling is queued', function() {
 		);
 	});
 	
-	// FIXME: This may pass when re-ran as the scheduled task is not destroyed when invalidated.
 	it('should have a result once triggered', async ()=> {
+		var init0 = await agents.getSize('timed0');
+		expect(init0).to.be.undefined;
+		var init1 = await agents.getSize('timed1');
+		expect(init1).to.be.undefined;
+
 		await wait(6000);
 		var timed0 = await agents.getSize('timed0');
 		expect(timed0).to.be.equal(17);
