@@ -19,16 +19,16 @@ var agents; // Initialized version of the agents singleton
 var colors = require('chalk');
 var dump = require('dumper.js').dump;
 var eventer = require('@momsfriendlydevco/eventer');
-var fs = require('fs');
+//var fs = require('fs');
 var os = require('os');
 var spawn = require('child_process').spawn;
 var program = require('commander');
-var promisify = require('util').promisify;
+//var promisify = require('util').promisify;
 var readable = require('@momsfriendlydevco/readable');
 var Table = require('cli-table3');
 var timestring = require('timestring');
 var util = require('util');
-var url = require('url');
+//var url = require('url');
 
 var agentInitSettings = {
 	autoInstall: false, // Don't set up Cron tasks
@@ -312,7 +312,7 @@ Promise.resolve()
 	// Output the result (if --print || --output) {{{
 	.then(()=> {
 		if (program.print) {
-			console.log(colors.bold.blue('RESULT:'));
+			// FIXME: When given Mongoose results this is a complex object with a toString() formatter.
 			dump(session.result);
 		}
 	})
