@@ -31,7 +31,7 @@
     "chalk": "^3.0.0",
     "cli-table3": "^0.5.1",
     "commander": "^4.1.1",
-    "cronstrue": "^1.100.0",
+    "cronstrue": "^1.101.0",
     "dumper.js": "^1.3.1",
     "globby": "^11.0.1",
     "lodash": "^4.17.20",
@@ -44,6 +44,6 @@
     "mocha-logger": "^1.0.7"
   },
   "optionalDependencies": {
-    "pm2": "^4.2.3"
+    "pm2": "^4.5.0"
   }
 }
