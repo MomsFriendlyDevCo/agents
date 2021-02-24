@@ -303,7 +303,15 @@ Promise.resolve()
 		return session;
 	})
 	.then(()=> session.emit('preRun', session, agents))
-	.then(()=> agents.run(session).then(res => session.result = res))
+	.then(()=> {
+		console.log('run attempt', session.agent)
+		return agents.run(session)
+			.then(res => {
+				console.log('run result', res);
+				session.result = res
+			})
+			.catch(e => console.log('e', e));
+	})
 	.then(()=> session.emit('postRun', session, agents))
 	// }}}
 	// Output the result (if --print || --output) {{{

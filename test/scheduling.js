@@ -13,6 +13,8 @@ describe('Ensuring scheduling is queued', function() {
 
 	before(()=> {
 		agents.settings.runner.calculate = ()=> 'pm2';
+		agents.settings.autoInstall = true;
+		agents.initCron();
 	});
 
 	beforeEach(done => {

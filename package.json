@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/MomsFriendlyDevCo/agents#readme",
   "dependencies": {
-    "@momsfriendlydevco/cache": "^1.6.3",
+    "@momsfriendlydevco/cache": "^2.1.4",
     "@momsfriendlydevco/eventer": "^1.5.1",
     "@momsfriendlydevco/readable": "^1.2.1",
     "@momsfriendlydevco/scheduler": "^0.0.10",

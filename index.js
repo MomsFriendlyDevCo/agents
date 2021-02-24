@@ -23,7 +23,7 @@
 var _ = require('lodash').mixin(require('lodash-keyarrange'));
 var argy = require('argy');
 var async = require('async-chainable');
-var cache = require('@momsfriendlydevco/cache');
+var Cache = require('@momsfriendlydevco/cache');
 var colors = require('chalk');
 var crypto = require('crypto');
 var cronTranslate = require('cronstrue').toString;
@@ -48,6 +48,7 @@ function Agents(options) {
 		],
 		keyRewrite: key => key,
 		cache: {
+			init: false,
 			modules: ['filesystem', 'memory'],
 			calculate: session => session.settings.cache.modules[0],
 			memcached: {
@@ -250,11 +251,10 @@ function Agents(options) {
 	agents.initCaches = ()=>
 		Promise.resolve()
 			.then(()=> agents.caches = {})
-			.then(()=> Promise.all(agents.settings.cache.modules.map(id => new Promise((resolve, reject) => {
-				agents.caches[id] = new cache({...agents.settings.cache, modules: [id]}, err => {
-					if (err) { reject(err) } else { resolve() }
-				});
-			}))))
+			.then(()=> Promise.all(agents.settings.cache.modules.map(id => {
+				agents.caches[id] = new Cache({...agents.settings.cache, modules: [id]});
+				return agents.caches[id].init();
+			})))
 
 
 	/**
@@ -530,7 +530,7 @@ function Agents(options) {
 						session.result = undefined;
 						return session;
 					} else {
-						throw new Error(`Unkown want type: "${settings.want}"`);
+						throw new Error(`Unknown want type: "${settings.want}"`);
 					}
 				}
 
@@ -553,7 +553,7 @@ function Agents(options) {
 					session.result = undefined;
 					return session;
 				} else {
-					throw new Error(`Unkown want type: "${settings.want}"`);
+					throw new Error(`Unknown want type: "${settings.want}"`);
 				}
 			})
 

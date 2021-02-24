@@ -2,6 +2,7 @@ var Agents = require('..');
 var mlog = require('mocha-logger');
 
 var agents = new Agents({
+	autoInstall: false,
 });
 
 before('Init agent instance', (done) => {
