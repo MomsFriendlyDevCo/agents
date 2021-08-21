@@ -314,12 +314,16 @@ Promise.resolve()
 	// End {{{
 	.catch(handleError)
 	.finally(()=> {
-		console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
-		if (process.exitCode) return; // Already exited.
+		if (program.agent) {
+			console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
+			if (process.exitCode) return; // Already exited.
 
-		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
-		return session.emit('end', session, agents)
-			.then(()=> console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(program.agent)))
-			.then(()=> process.exit(0));
+			console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
+			return session.emit('end', session, agents)
+				.then(()=> console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(program.agent)))
+				.then(()=> process.exit(0));
+		} else {
+			process.exit(0);
+		}
 	})
 	// }}}
