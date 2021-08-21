@@ -26,6 +26,7 @@
     "@momsfriendlydevco/cache": "^2.1.4",
     "@momsfriendlydevco/eventer": "^1.5.1",
     "@momsfriendlydevco/readable": "^1.2.1",
+    "@momsfriendlydevco/scheduler": "0.0.10",
     "async-chainable": "^2.6.1",
     "chalk": "^3.0.0",
     "cli-table3": "^0.5.1",
