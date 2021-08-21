@@ -164,13 +164,19 @@ See the [examples](./examples) directory for more comprehensive examples.
 
 Agents have the following settings:
 
-| Setting     | Type       | Default    | Description                                                                                                 |
-|-------------|------------|------------|-------------------------------------------------------------------------------------------------------------|
-| `path`      | `string`   | Calculated | Calculate as the source agent path when refreshing                                                          |
-| `id`        | `string`   |            | The unique ID identifying the agent                                                                         |
-| `hasReturn` | `boolean`  | `true`     | Whether the agent is expected to return a value, an warning occurs if the agent does not                    |
-| `immediate` | `boolean`  | `false`    | Indicates that the agent should always be executed when the agent module loads the agent for the first time |
-| `triggers`  | `triggers` | `[]`       | Additional triggers that make the agent run. Examples could include things like `"boot"`, `"build"` etc.    |
+| Setting        | Type                 | Default             | Description                                                                                                 |
+|----------------|----------------------|---------------------|-------------------------------------------------------------------------------------------------------------|
+| `id`           | `string`             |                     | The unique ID identifying the agent                                                                         |
+| `worker`       | `function`           |                     | Worker function to call as `(callback, settings)`                                                           |
+| `clearOnBuild` | `boolean`            | `false`             | Whether the agent cache should be invalidated on any system build                                           |
+| `expires`      | `boolean` / `string` | `false`             | Additional cache expiry options to hold the agent response                                                  |
+| `hasReturn`    | `boolean`            | `true`              | Whether the agent is expected to return a value, an warning occurs if the agent does not                    |
+| `immediate`    | `boolean`            | `false`             | Indicates that the agent should always be executed when the agent module loads the agent for the first time |
+| `methods`      | `array<string>`      | `['inline', 'pm2']` | Method types this agent is compatible with                                                                  |
+| `path`         | `string`             | Calculated          | Calculate as the source agent path when refreshing                                                          |
+| `show`         | `boolean`            | `true`              | Whether to show the agent in the agent list                                                                 |
+| `triggers`     | `triggers`           | `[]`                | Additional triggers that make the agent run. Examples could include things like `"boot"`, `"build"` etc.    |
+
 
 
 

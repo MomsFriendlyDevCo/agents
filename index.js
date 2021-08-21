@@ -90,10 +90,11 @@ function Agents(options) {
 
 		agentDefaults: {
 			hasReturn: true,
+			expires: false,
 			immediate: false,
 			clearOnBuild: false,
 			show: true,
-			runners: ['pm2', 'inline'],
+			methods: ['pm2', 'inline'],
 		},
 	});
 
@@ -140,7 +141,7 @@ function Agents(options) {
 	* @param {string} id The ID of the agent to store in the cache
 	* @param {boolean} [hasReturn=true] Whether the agent is expected to return something
 	* @param {boolean} [immediate=false] Whether to run the agents as soon as the server is ready - should only be used for debugging purposes (only works if app.config.agents.allowImmediate is true)
-	* @param {array} [methods] Which methods are allowed to run the agent, these are processed in first->last priority order with the first matching being used
+	* @param {array} [methods=['inline', 'pm2']] Which methods are allowed to run the agent, these are processed in first->last priority order with the first matching being used
 	* @param {boolean} [show=false] Whether the agent should show up in the agent listing
 	* @param {boolean} [clearOnBuild=true] Whether the agent contents should invalidate on each build
 	* @param {CronJob} [cronJob] The CronJob object calculated from the timing string. Only available if timing is specified
