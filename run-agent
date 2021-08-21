@@ -301,13 +301,11 @@ Promise.resolve()
 	})
 	.then(()=> session.emit('preRun', session, agents))
 	.then(()=> {
-		console.log('run attempt', session.agent)
 		return agents.run(session)
 			.then(res => {
 				console.log('run result', res);
 				session.result = res
 			})
-			.catch(e => console.log('e', e));
 	})
 	.then(()=> session.emit('postRun', session, agents))
 	// }}}
