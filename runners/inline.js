@@ -15,14 +15,14 @@ module.exports = {
 					var expiry = new Date(Date.now() + (timestring(session.worker.expires) * 1000));
 					session.context.log(`Stashing result with expiry of ${expiry}`);
 					var stashStart = new Date();
-					session.cacher.set(session.cacheKey, value, expiry, err => {
+					session.cacher.set(session.cacheKey, value, expiry).then(() => {
 						session.context.log(`Stash write complete in ${readable.relativeTime(stashStart, {formatters: {fallback: '0ms'}})}`);
 						resolve(value);
 					});
 				} else { // Stash value with no expiry
 					session.context.log('Stashing result with no expiry');
 					var stashStart = new Date();
-					session.cacher.set(session.cacheKey, value, err => {
+					session.cacher.set(session.cacheKey, value).then(() => {
 						session.context.log(`Stash write complete in ${readable.relativeTime(stashStart, {formatters: {fallback: '0ms'}})}`);
 						resolve(value);
 					});

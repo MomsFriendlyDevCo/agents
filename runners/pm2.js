@@ -164,8 +164,8 @@ module.exports = {
 			// }}}
 			.parallel({
 				// Scoop the computed value from the cache {{{
-				value: function(next) {
-					session.cacher.get(session.cacheKey, next);
+				value: function() {
+					return session.cacher.get(session.cacheKey);
 				},
 				// }}}
 				// Clean up the PM2 process {{{

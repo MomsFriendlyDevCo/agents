@@ -23,12 +23,12 @@
 var _ = require('lodash').mixin(require('lodash-keyarrange'));
 var argy = require('argy');
 var async = require('async-chainable');
-var cache = require('@momsfriendlydevco/cache');
+var Cache = require('@momsfriendlydevco/cache');
 var colors = require('chalk');
 var crypto = require('crypto');
-var CronJob = require('cron').CronJob;
 var cronTranslate = require('cronstrue').toString;
 var eventer = require('@momsfriendlydevco/eventer');
+var scheduler = require('@momsfriendlydevco/scheduler');
 var fspath = require('path');
 var glob = require('globby');
 var timestring = require('timestring');
@@ -48,6 +48,7 @@ function Agents(options) {
 		],
 		keyRewrite: key => key,
 		cache: {
+			init: false,
 			modules: ['filesystem', 'memory'],
 			calculate: session => session.settings.cache.modules[0],
 			memcached: {
@@ -246,6 +247,7 @@ function Agents(options) {
 						})
 				);
 			})
+			.then(()=> scheduler.start())
 			.then(()=> agents.emit('ready'))
 			.then(()=> this)
 
@@ -256,11 +258,10 @@ function Agents(options) {
 	agents.initCaches = ()=>
 		Promise.resolve()
 			.then(()=> agents.caches = {})
-			.then(()=> Promise.all(agents.settings.cache.modules.map(id => new Promise((resolve, reject) => {
-				agents.caches[id] = new cache({...agents.settings.cache, modules: [id]}, err => {
-					if (err) { reject(err) } else { resolve() }
-				});
-			}))))
+			.then(()=> Promise.all(agents.settings.cache.modules.map(id => {
+				agents.caches[id] = new Cache({...agents.settings.cache, modules: [id]});
+				return agents.caches[id].init();
+			})))
 
 
 	/**
@@ -270,14 +271,13 @@ function Agents(options) {
 		Promise.all(
 			_.values(agents._agents).map(agent => {
 				if (!agent.timing || !agents.settings.autoInstall) return; // No timing - don't bother registering
-				agent.cronJob = new CronJob({
-					cronTime: agent.timing,
-					onTick: ()=> {
+				agent.cronJob = new scheduler.Task(
+					agent.timing,
+					()=> {
 						agents.emit('tick', agent.id);
-						agents.run(agent.id);
-					},
-					start: true,
-				});
+						return agents.run(agent.id);
+					}
+				);
 
 				return agents.emit('scheduled', agent.id);
 			})
@@ -301,6 +301,7 @@ function Agents(options) {
 				// Destroy all caches
 				()=> Promise.all(_.values(this.caches).map(c => c.destroy())),
 			]))
+			.then(()=> scheduler.pause())
 			.then(()=> this.emit('destroyed'))
 
 
@@ -526,6 +527,20 @@ function Agents(options) {
 			.then(session => {
 				if (agents._running[session.cacheKey]) return agents._running[session.cacheKey].defer.promise; // If an agent is already running attach to its defer and complete
 
+				// Exit when runner isn't within supported methods.
+				// FIXME: Simply throw when attempting to run with an unsupported runner?
+				if (session.worker.methods.indexOf(session.runner) === -1) {
+					if (!settings.want || settings.want == 'promise') { // Want promise
+						return session.defer.reject;
+					} else if (settings.want == 'session') {
+						session.status = 'error';
+						session.result = undefined;
+						return session;
+					} else {
+						throw new Error(`Unknown want type: "${settings.want}"`);
+					}
+				}
+
 				agents._running[session.cacheKey] = session;
 
 				setTimeout(()=> { // Queue in next cycle so we can return the promise object for now
@@ -545,7 +560,7 @@ function Agents(options) {
 					session.result = undefined;
 					return session;
 				} else {
-					throw new Error(`Unkown want type: "${settings.want}"`);
+					throw new Error(`Unknown want type: "${settings.want}"`);
 				}
 			})
 
@@ -606,7 +621,7 @@ function Agents(options) {
 	agents.invalidate = (id, agentSettings, settings) =>
 		Promise.resolve()
 			.then(()=> _.isObject(id) ? id : agents.createSession(id, agentSettings, settings))
-			.then(session => agent.caches[session.cache].unset(session.cacheKey))
+			.then(session => agents.caches[session.cache].unset(session.cacheKey))
 
 
 	/**

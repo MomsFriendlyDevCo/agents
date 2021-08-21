@@ -19,16 +19,13 @@ var agents; // Initialized version of the agents singleton
 var colors = require('chalk');
 var dump = require('dumper.js').dump;
 var eventer = require('@momsfriendlydevco/eventer');
-var fs = require('fs');
 var os = require('os');
 var spawn = require('child_process').spawn;
 var program = require('commander');
-var promisify = require('util').promisify;
 var readable = require('@momsfriendlydevco/readable');
 var Table = require('cli-table3');
 var timestring = require('timestring');
 var util = require('util');
-var url = require('url');
 
 var agentInitSettings = {
 	autoInstall: false, // Don't set up Cron tasks
@@ -73,8 +70,16 @@ var session = {};
 var handleError = e => {
 	if (e === 1 || e.toString() == 'Error: QUIT') return; // Exit quietly without error
 
-	console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent', colors.cyan(program.agent), '-', e.toString());
-	if (Object.prototype.hasOwnProperty(session, 'emit')) {
+	// Print the entire `e` object when `e.message` is not defined.
+	if (Buffer.isBuffer(e)) {
+		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent "'+e.toString()+'"', colors.cyan(program.agent));
+	} else if (e.message) {
+		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent "'+e.message+'"', colors.cyan(program.agent));
+	} else {
+		console.log(colors.blue('[agents]'), colors.red.bold('ERROR'), 'Agent error while running the agent', e, colors.cyan(program.agent));
+	}
+
+	if (Object.prototype.hasOwnProperty.call(session, 'emit')) {
 		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
 		return session.emit('end', session, agents)
 		.then(()=> console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent)))
@@ -295,7 +300,15 @@ Promise.resolve()
 		return session;
 	})
 	.then(()=> session.emit('preRun', session, agents))
-	.then(()=> agents.run(session).then(res => session.result = res))
+	.then(()=> {
+		console.log('run attempt', session.agent)
+		return agents.run(session)
+			.then(res => {
+				console.log('run result', res);
+				session.result = res
+			})
+			.catch(e => console.log('e', e));
+	})
 	.then(()=> session.emit('postRun', session, agents))
 	// }}}
 	// Output the result (if --print || --output) {{{
