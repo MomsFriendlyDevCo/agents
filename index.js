@@ -170,8 +170,10 @@ function Agents(options) {
 	agents.refresh = ()=>
 		Promise.resolve()
 			.then(()=> glob(agents.settings.paths, {ignore: ['node_modules']}))
-			.then(paths =>
-				agents._agents = _(paths)
+			.then(paths => {
+				var seenAgents = new Set();
+
+				return agents._agents = _(paths)
 					.map(path => {
 						try {
 							return _.set(require(path), 'path', path);
@@ -185,17 +187,21 @@ function Agents(options) {
 						var missing = ['id', 'hasReturn', 'worker']
 							.filter(f => !_.has(mod, f));
 
-						if (missing.length) {
+						if (seenAgents.has(mod.id)) {
+							agents.emit('refreshWarn', mod.path, `has duplicate id "${mod.id}" - skipped`);
+							return false;
+						} else if (missing.length) {
 							agents.emit('refreshWarn', mod.path, `file does not have the required keys ${missing.map(m => `"${m}"`).join(', ')} (or maybe look like a valid agent?) - skipped`);
 							return false;
 						} else {
+							seenAgents.add(mod.id);
 							return true;
 						}
 					})
 					.mapKeys(mod => mod.id)
 					.mapValues(mod => mod)
 					.value()
-			)
+			})
 			// }}}
 			.then(()=> agents.emit('refresh', _.keys(agents._agents).sort()))
 
