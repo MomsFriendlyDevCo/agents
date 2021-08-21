@@ -300,13 +300,7 @@ Promise.resolve()
 		return session;
 	})
 	.then(()=> session.emit('preRun', session, agents))
-	.then(()=> {
-		return agents.run(session)
-			.then(res => {
-				console.log('run result', res);
-				session.result = res
-			})
-	})
+	.then(()=> agents.run(session).then(res => session.result = res))
 	.then(()=> session.emit('postRun', session, agents))
 	// }}}
 	// Output the result (if --print || --output) {{{
