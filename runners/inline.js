@@ -11,7 +11,7 @@ module.exports = {
 				if (err) {
 					// TODO: Store error in special cache key for later accurate status report
 					reject(err);
-				} else if (_.isString(session.worker.expires) && session.worker.expires) { // Stash value with an expiry
+				} else if (session.hasReturn && _.isString(session.worker.expires) && session.worker.expires) { // Stash value with an expiry
 					var expiry = new Date(Date.now() + (timestring(session.worker.expires) * 1000));
 					session.context.log(`Stashing result with expiry of ${expiry}`);
 					var stashStart = new Date();
@@ -19,13 +19,15 @@ module.exports = {
 						session.context.log(`Stash write complete in ${readable.relativeTime(stashStart, {formatters: {fallback: '0ms'}})}`);
 						resolve(value);
 					});
-				} else { // Stash value with no expiry
+				} else if (session.hasReturn) { // Stash value with no expiry
 					session.context.log('Stashing result with no expiry');
 					var stashStart = new Date();
 					session.cacher.set(session.cacheKey, value).then(() => {
 						session.context.log(`Stash write complete in ${readable.relativeTime(stashStart, {formatters: {fallback: '0ms'}})}`);
 						resolve(value);
 					});
+				} else { // Worker finished but has no stashable result
+					resolve();
 				}
 			}, [session.agentSettings, session]);
 		} catch(err) {
