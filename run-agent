@@ -85,9 +85,6 @@ var handleError = e => {
 	}
 };
 
-//process.on('exit', handleError);
-//process.on('SIGINT', handleError);
-//process.on('SIGTERM', handleError);
 process.on('uncaughtException', handleError);
 process.on('unhandledRejection', handleError);
 
@@ -270,7 +267,7 @@ Promise.resolve()
 						agents._agents[id].hasReturn ? 'X' : '',
 						agents._agents[id].show ? 'X' : '',
 						agents._agents[id].clearOnBuild ? 'X' : '',
-						agents._agents[id].runners.join(', '),
+						agents._agents[id].methods.join(', '),
 					]);
 				});
 
@@ -292,7 +289,7 @@ Promise.resolve()
 			console.log(colors.blue('[agents]'), 'Going to run the agent', colors.cyan(session.agent));
 			console.log(colors.blue('[agents]'), '... with settings:', util.inspect(session.agentSettings, {depth: null, colors: true}))
 			console.log(colors.blue('[agents]'), '... using the',  colors.cyan(session.runner), 'runner');
-			console.log(colors.blue('[agents]'), '... via the', colors.cyan(session.cache), 'cacher');
+			console.log(colors.blue('[agents]'), '... via the', colors.cyan(session.cache), 'cache');
 			console.log(colors.blue('[agents]'), '... and saving as the cache key', colors.cyan(session.cacheKey));
 		}
 		return session;
