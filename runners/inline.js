@@ -10,6 +10,7 @@ module.exports = {
 		try {
 			async.run(session.context, session.worker.worker, (err, value) => {
 				if (err) {
+					debug('inline run error', err);
 					// TODO: Store error in special cache key for later accurate status report
 					reject(err);
 				} else if (session.worker.hasReturn && _.isString(session.worker.expires) && session.worker.expires) { // Stash value with an expiry

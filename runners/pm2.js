@@ -4,6 +4,7 @@
 var _ = require('lodash');
 var async = require('async-chainable');
 var colors = require('chalk');
+var debug = require('debug')('agents:pm2');
 var fs = require('fs');
 var pm2 = require('pm2');
 var readable = require('@momsfriendlydevco/readable');
@@ -41,7 +42,10 @@ module.exports = {
 					interpreter: session.settings.runner.pm2.execFileInterpreter,
 					interpreterArgs: session.settings.runner.pm2.execFileInterpreterArgs,
 				}, (err, proc) => {
-					if (err) return next(err);
+					if (err) {
+						debug('pm2 start error', err);
+						return next(err);
+					}
 					// Wait at least one second before continuing
 					next(null, proc[0].process.pid);
 				});
@@ -52,7 +56,10 @@ module.exports = {
 				var startTick = Date.now();
 				var checkProcess = ()=> {
 					pm2.describe(this.procName, (err, proc) => {
-						if (err) return next(err);
+						if (err) {
+							debug('pm2 describe error', err);
+							return next(err);
+						}
 
 						var status =
 							_.isEqual(proc, [[]]) && _.isEqual(proc, []) ? 'stopped'
@@ -144,10 +151,12 @@ module.exports = {
 										})
 								} else {
 									var logPath = _.get(proc, '0.pm2_env.pm_err_log_path', '');
+									debug('pm2 stopped error', exitCode, logPath);
 									next(`Non-zero exit code: ${exitCode} see ${logPath}`);
 								}
 								break;
 							case 'errored':
+								debug('pm2 errored');
 								next('PM2 process errored out');
 								break;
 							case 'unknown':
@@ -171,7 +180,10 @@ module.exports = {
 				// Clean up the PM2 process {{{
 				pm2Cleaner: function(next) {
 					pm2.delete(this.procName, err => {
-						if (err) session.context.warn('Error cleaning up process', colors.cyan(this.procName), '-', err);
+						if (err) {
+							debug('pm2 delete error', err);
+							session.context.warn('Error cleaning up process', colors.cyan(this.procName), '-', err);
+						}
 						next();
 					});
 				},
