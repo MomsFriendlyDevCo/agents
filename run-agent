@@ -82,14 +82,15 @@ var handleError = e => {
 	if (Object.prototype.hasOwnProperty.call(session, 'emit')) {
 		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
 		return session.emit('end', session, agents)
-		.then(()=> console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent)))
-		.then(()=> process.exit(1));
+			.then(()=> console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent)))
+			.then(()=> process.exit(1));
 	} else {
 		console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent));
 		process.exit(1)
 	}
 };
 
+// FIXME: Do we need to look for SIGINT or others?
 process.on('uncaughtException', handleError);
 process.on('unhandledRejection', handleError);
 
@@ -289,6 +290,7 @@ Promise.resolve()
 	.then(()=> agents.createSession(program.agent, program.opts)) // Expand dummy session with real details
 	.then(createdSession => Object.assign(session, createdSession))
 	.then(()=> session.emit('postSession', session, agents))
+	// FIXME: Race-condition, might not make it to agents.run. Stops at some random point.
 	.then(()=> {
 		if (program.verbose) {
 			console.log(colors.blue('[agents]'), 'Going to run the agent', colors.cyan(session.agent));
