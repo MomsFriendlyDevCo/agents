@@ -1,5 +1,6 @@
 var _ = require('lodash');
 var async = require('async-chainable');
+var debug = require('debug')('agents:inline');
 var timestring = require('timestring');
 var readable = require('@momsfriendlydevco/readable');
 
@@ -31,6 +32,7 @@ module.exports = {
 				}
 			}, [session.agentSettings, session]);
 		} catch(err) {
+			debug('inline caught error', err);
 			// TODO: Store error in special cache key for later accurate status report
 			reject(err.message);
 		}

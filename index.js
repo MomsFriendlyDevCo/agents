@@ -27,6 +27,7 @@ var Cache = require('@momsfriendlydevco/cache');
 var colors = require('chalk');
 var crypto = require('crypto');
 var cronTranslate = require('cronstrue').toString;
+var debug = require('debug')('agents:core');
 var eventer = require('@momsfriendlydevco/eventer');
 var scheduler = require('@momsfriendlydevco/scheduler');
 var fspath = require('path');
@@ -549,6 +550,7 @@ function Agents(options) {
 						.then(()=> agents.caches[session.cache].unset(`${session.cacheKey}-progress`)) // Reset progress marker
 						.then(()=> agents.runners[session.runner].exec(session))
 						.then(value => session.defer.resolve(value))
+						// FIXME: Rejection message never makes it back to logs?
 						.catch(session.defer.reject)
 						.finally(()=> delete agents._running[session.cacheKey])
 				});

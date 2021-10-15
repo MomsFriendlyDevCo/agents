@@ -290,7 +290,6 @@ Promise.resolve()
 	.then(()=> agents.createSession(program.agent, program.opts)) // Expand dummy session with real details
 	.then(createdSession => Object.assign(session, createdSession))
 	.then(()=> session.emit('postSession', session, agents))
-	// FIXME: Race-condition, might not make it to agents.run. Stops at some random point.
 	.then(()=> {
 		if (program.verbose) {
 			console.log(colors.blue('[agents]'), 'Going to run the agent', colors.cyan(session.agent));
