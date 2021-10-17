@@ -44,7 +44,7 @@ describe('Ensuring scheduling is queued', function() {
 			expect(size).to.be.undefined
 		);
 	});
-	
+
 	it('should have a result once triggered', async ()=> {
 		var init0 = await agents.getSize('timed0');
 		expect(init0).to.be.undefined;
@@ -58,5 +58,6 @@ describe('Ensuring scheduling is queued', function() {
 		var timed1 = await agents.getSize('timed1');
 		expect(timed1).to.be.equal(17);
 	});
+
 
 });

@@ -272,7 +272,7 @@ function Agents(options) {
 		Promise.all(
 			_.values(agents._agents).map(agent => {
 				if (!agent.timing || !agents.settings.autoInstall) return; // No timing - don't bother registering
-				agent.cronJob = new scheduler.Task(
+				agent.cronJob = scheduler.Task(
 					agent.timing,
 					()=> {
 						agents.emit('tick', agent.id);
