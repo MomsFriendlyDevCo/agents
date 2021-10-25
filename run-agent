@@ -39,6 +39,7 @@ program
 	.option('-r, --runner [inline|aws|pm2]', 'What runner to use with the agent')
 	.option('-c, --cache [filesystem|redis...]', 'What caching method to force')
 	.option('-o, --opts <key=val>', 'Specify an agent options in dotted notation (can be specified multiple times)', (v, total) => {
+		var total = {};
 		var bits = [key, val] = v.split(/\s*=\s*/, 2);
 		if (bits.length == 1) { // Assume we are just setting a flag to true
 			_.set(total, key, true);
@@ -51,7 +52,7 @@ program
 		} else {
 			throw `Failed to parse setting "${v}"`;
 		}
-		return total
+		return total;
 	}, {})
 	.option('-n, --nice [number]', 'Set nice priority of the process (default 10)')
 	.option('-d, --debug', 'Debugging convenience mode (imples `-pv -m inline -c memory`)')
@@ -63,8 +64,10 @@ program
 	.option('--max-procs [limit]', 'Set the maximum number of spawned processes (default: 1024)')
 	.option('--max-files [limit]', 'Set the maximum number of files a process can open (default: 50)')
 	.option('--no-human', 'Disable automatic human TTY detection')
-	.parse(process.argv)
-	
+	.parse(process.argv);
+
+var options = program.opts();
+
 var session = {};
 
 var handleError = e => {
@@ -80,12 +83,12 @@ var handleError = e => {
 	}
 
 	if (Object.prototype.hasOwnProperty.call(session, 'emit')) {
-		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
+		console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(options.agent));
 		return session.emit('end', session, agents)
-			.then(()=> console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent)))
+			.then(()=> console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(options.agent)))
 			.then(()=> process.exit(1));
 	} else {
-		console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(program.agent));
+		console.log(colors.blue('[agents]'), 'Killing agent', colors.cyan(options.agent));
 		process.exit(1)
 	}
 };
@@ -100,57 +103,57 @@ Promise.resolve()
 		if (process.env.AGENT_PATH) {
 			var usePaths = process.env.AGENT_PATH.split(/\s*,\s*/)
 			agentInitSettings.paths = usePaths;
-			if (program.verbose) console.log(colors.grey('Using environment paths override:', usePaths.join(', ')));
+			if (options.verbose) console.log(colors.grey('Using environment paths override:', usePaths.join(', ')));
 		}
 	})
 	// }}}
 	// Detect human using TTY {{{
 	.then(()=> {
-		if (process.stdout.isTTY && !program.debug && program.human) {
+		if (process.stdout.isTTY && !options.debug && options.human) {
 			console.log(colors.grey('You look like a human, switching on --debug mode. Use --no-human to disable human detection'));
-			program.debug = true;
+			options.debug = true;
 		}
 	})
 	// }}}
 	// Process arguments / environment variables {{{
 	.then(()=> {
-		_.defaults(program, {
-			maxTime: timestring(program.time || process.env.AGENT_TIMELIMIT || '15m'),
+		_.defaults(options, {
+			maxTime: timestring(options.time || process.env.AGENT_TIMELIMIT || '15m'),
 			maxProcs: 0,
 			maxFiles: 0,
 			print: false,
 		});
 
 		if (!program.args.length && process.env.AGENT) { // No args and has ENV `AGENT`
-			program.agent = process.env.AGENT;
+			options.agent = process.env.AGENT;
 
 			// Enable various inline options:
 			colors.enabled = true;
-			_.defaults(program, {
+			_.defaults(options, {
 				nice: 10,
 				verbose: 10,
 			});
 		} else if (program.args.length == 1) {
-			program.agent = program.args.pop();
+			options.agent = program.args.pop();
 		} else if (program.args.length > 1) {
 			throw new Error('Only one agent can be run at a time');
-		} else if (program.list) {
+		} else if (options.list) {
 			// List mode - do nothing
 		} else {
 			throw new Error('No agent-id given!');
 		}
 
-		if (_.isUndefined(program.maxRam)) {
-			program.maxRam = 1024 * 1024 * 1024 * 12; // 12gb
+		if (_.isUndefined(options.maxRam)) {
+			options.maxRam = 1024 * 1024 * 1024 * 12; // 12gb
 		} else {
-			program.maxRam = parseInt(program.maxRam);
-			if (isNaN(program.maxRam)) throw new Error('Invalid maximum RAM - must be a number of bytes');
+			options.maxRam = parseInt(options.maxRam);
+			if (isNaN(options.maxRam)) throw new Error('Invalid maximum RAM - must be a number of bytes');
 		}
 
-		if (process.env.AGENT_SETTINGS) program.opts = JSON.parse(process.env.AGENT_SETTINGS);
+		if (process.env.AGENT_SETTINGS) options.opts = JSON.parse(process.env.AGENT_SETTINGS);
 
 		if (process.env.AGENT_LAMBDA) {
-			_.defaults(program, {
+			_.defaults(options, {
 				runner: 'inline',
 				nice: 0,
 				maxTime: 0,
@@ -160,8 +163,8 @@ Promise.resolve()
 			});
 		}
 
-		if (program.debug) {
-			_.defaults(program, {
+		if (options.debug) {
+			_.defaults(options, {
 				runner: 'inline',
 				print: true,
 				verbose: 2,
@@ -173,8 +176,8 @@ Promise.resolve()
 	.then(()=> Promise.all([
 		// Set the nice level {{{
 		new Promise(resolve => {
-			if (!program.nice) return resolve();
-			console.log(colors.blue('[agents]'), 'Switching process', colors.cyan(`PID #${process.pid}`), 'niceness to', colors.cyan(program.nice || 10));
+			if (!options.nice) return resolve();
+			console.log(colors.blue('[agents]'), 'Switching process', colors.cyan(`PID #${process.pid}`), 'niceness to', colors.cyan(options.nice || 10));
 			if (_.isFunction(os.setPriority)) {
 				os.setPriority(process.nice || 10);
 			} else {
@@ -188,21 +191,21 @@ Promise.resolve()
 			var args = [];
 			var limits = [];
 
-			if (program.maxTime > 0) {
-				args.push(`--cpu=${program.maxTime}`);
-				limits.push('CPU time=' + colors.cyan(program.maxTime));
+			if (options.maxTime > 0) {
+				args.push(`--cpu=${options.maxTime}`);
+				limits.push('CPU time=' + colors.cyan(options.maxTime));
 			}
-			if (program.maxRam > 0) {
-				args.push(`--data=${program.maxRam}`);
-				limits.push('RAM=' + colors.cyan(readable.fileSize(program.maxRam)));
+			if (options.maxRam > 0) {
+				args.push(`--data=${options.maxRam}`);
+				limits.push('RAM=' + colors.cyan(readable.fileSize(options.maxRam)));
 			}
-			if (program.maxProcs > 0) {
-				args.push(`--nproc=${program.maxProcs}`);
-				limits.push('Sub procs=' + colors.cyan(program.maxProcs));
+			if (options.maxProcs > 0) {
+				args.push(`--nproc=${options.maxProcs}`);
+				limits.push('Sub procs=' + colors.cyan(options.maxProcs));
 			}
-			if (program.maxFiles > 0) {
-				args.push(`--nofile=${program.maxFiles}`);
-				limits.push('Files=' + colors.cyan(program.maxFiles));
+			if (options.maxFiles > 0) {
+				args.push(`--nofile=${options.maxFiles}`);
+				limits.push('Files=' + colors.cyan(options.maxFiles));
 			}
 
 			if (!args.length) return resolve(); // Nothing to do
@@ -225,17 +228,17 @@ Promise.resolve()
 	.then(()=> {
 		agents = new Agents({
 			...agentInitSettings,
-			cache: program.cache ? {modules: [program.cache], calculate: ()=> program.cache} : undefined,
-			runner: program.runner ? {modules: [program.runner], calculate: ()=> program.runner} : undefined,
+			cache: options.cache ? {modules: [options.cache], calculate: ()=> options.cache} : undefined,
+			runner: options.runner ? {modules: [options.runner], calculate: ()=> options.runner} : undefined,
 		});
-		agents.set(program.opts);
+		agents.set(options.opts);
 	})
 	// }}}
 	// Include the preload file {{{
 	.then(()=> eventer.extend(session))
 	.then(()=> {
 		if (!process.env.AGENT_PRELOAD) return;
-		if (program.verbose) console.log(colors.grey('Including the preload file:', process.env.AGENT_PRELOAD));
+		if (options.verbose) console.log(colors.grey('Including the preload file:', process.env.AGENT_PRELOAD));
 		return Promise.resolve(require(process.env.AGENT_PRELOAD)(session))
 	})
 	.then(()=> session.emit('start', session, agents))
@@ -243,18 +246,18 @@ Promise.resolve()
  	// Init {{{
 	.then(()=> session.emit('preInit', session, agents))
 	.then(()=> { // Override the session settings if we have command line values
-		if (program.cache) agents.set({cache: {modules: [program.cache], calculate: ()=> program.cache}});
-		if (program.runner) agents.set({runner: {modules: [program.runner], calculate: ()=> program.runner}});
+		if (options.cache) agents.set({cache: {modules: [options.cache], calculate: ()=> options.cache}});
+		if (options.runner) agents.set({runner: {modules: [options.runner], calculate: ()=> options.runner}});
 	})
  	.then(()=> agents.init())
 	.then(()=> {
-		if (!program.list && !agents.has(program.agent)) throw new Error(`Invalid agent-id: "${program.agent}"`);
+		if (!options.list && !agents.has(options.agent)) throw new Error(`Invalid agent-id: "${options.agent}"`);
 	})
 	.then(()=> session.emit('postInit', session, agents))
 	// }}}
 	// Run in list mode (if --list) {{{
 	.then(()=> {
-		if (!program.list) return;
+		if (!options.list) return;
 
 		var table = new Table({
 			head: ['Agent ID', 'Timing', 'Expires', 'Data?', 'Show?', 'Clear on build?', 'Methods'],
@@ -287,11 +290,11 @@ Promise.resolve()
 	// }}}
 	// Run the agent {{{
 	.then(()=> session.emit('preSession', session, agents))
-	.then(()=> agents.createSession(program.agent, program.opts)) // Expand dummy session with real details
+	.then(()=> agents.createSession(options.agent, options.opts)) // Expand dummy session with real details
 	.then(createdSession => Object.assign(session, createdSession))
 	.then(()=> session.emit('postSession', session, agents))
 	.then(()=> {
-		if (program.verbose) {
+		if (options.verbose) {
 			console.log(colors.blue('[agents]'), 'Going to run the agent', colors.cyan(session.agent));
 			console.log(colors.blue('[agents]'), '... with settings:', util.inspect(session.agentSettings, {depth: null, colors: true}))
 			console.log(colors.blue('[agents]'), '... using the',  colors.cyan(session.runner), 'runner');
@@ -306,7 +309,7 @@ Promise.resolve()
 	// }}}
 	// Output the result (if --print || --output) {{{
 	.then(()=> {
-		if (program.print) {
+		if (options.print) {
 			console.log(colors.bold.blue('RESULT:'));
 			dump(session.result);
 		}
@@ -320,13 +323,13 @@ Promise.resolve()
 	// End {{{
 	.catch(handleError)
 	.finally(()=> {
-		if (program.agent) {
-			console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(program.agent));
+		if (options.agent) {
+			console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(options.agent));
 			if (process.exitCode) return; // Already exited.
 
-			console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(program.agent));
+			console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(options.agent));
 			return session.emit('end', session, agents)
-				.then(()=> console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(program.agent)))
+				.then(()=> console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(options.agent)))
 				.then(()=> process.exit(0));
 		} else {
 			process.exit(0);

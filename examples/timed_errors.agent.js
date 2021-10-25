@@ -27,6 +27,8 @@ module.exports = {
 			payload: {foo: 123},
 		});
 
+		settings.wait = parseInt(settings.wait);
+
 		if (settings.throw)
 			throw new Error('ERROR');
 

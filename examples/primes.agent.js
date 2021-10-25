@@ -22,6 +22,8 @@ module.exports = {
 			limit: 10000,
 		});
 
+		settings.limit = parseInt(settings.limit);
+
 		var isPrime = number => {
 			let start = 2;
 			const limit = Math.sqrt(number);
