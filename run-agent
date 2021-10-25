@@ -39,7 +39,6 @@ program
 	.option('-r, --runner [inline|aws|pm2]', 'What runner to use with the agent')
 	.option('-c, --cache [filesystem|redis...]', 'What caching method to force')
 	.option('-o, --opts <key=val>', 'Specify an agent options in dotted notation (can be specified multiple times)', (v, total) => {
-		var total = {};
 		var bits = [key, val] = v.split(/\s*=\s*/, 2);
 		if (bits.length == 1) { // Assume we are just setting a flag to true
 			_.set(total, key, true);
