@@ -326,10 +326,15 @@ Promise.resolve()
 			console.log(colors.blue('[agents]'), 'Finished running agent', colors.cyan(options.agent));
 			if (process.exitCode) return; // Already exited.
 
-			console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(options.agent));
-			return session.emit('end', session, agents)
-				.then(()=> console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(options.agent)))
-				.then(()=> process.exit(0));
+			if (Object.prototype.hasOwnProperty.call(session, 'emit')) {
+				console.log(colors.blue('[agents]'), 'Cleaning up...', colors.cyan(options.agent));
+				return session.emit('end', session, agents)
+					.then(()=> console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(options.agent)))
+					.then(()=> process.exit(0));
+			} else {
+				console.log(colors.blue('[agents]'), 'Exiting agent', colors.cyan(options.agent));
+				process.exit(0)
+			}
 		} else {
 			process.exit(0);
 		}
