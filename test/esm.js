@@ -1,6 +1,5 @@
 var Agents = require('..');
 var expect = require('chai').expect;
-var fixEsm = require('fix-esm');
 var mlog = require('mocha-logger');
 var inclusion = require('inclusion');
 
