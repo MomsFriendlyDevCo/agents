@@ -28,6 +28,21 @@ agents.get('primes', {limit: 1e6}, {want: 'session'})
 	})
 ```
 
+ESM / ES6 compatibility
+-----------------------
+The `require` method can be overloaded to usse a third party module to pre-compile ESM momdules to CJS:
+
+```javascript
+var agents = new Agents({
+	autoInstall: false,
+	require: path => inclusion(path) // Use the inclusion NPM to convert ESM modules to CJS before use
+		.then(mod => mod.default || mod), // use `default` as Agent object or the entire export structure
+	paths: [
+		`${__dirname}/../examples/*.mjs`,
+	],
+});
+```
+
 
 Module API
 ==========

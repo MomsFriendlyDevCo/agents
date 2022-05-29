@@ -43,6 +43,7 @@ function Agents(options) {
 		autoInstall: true,
 		allowImmediate: true,
 		logThrottle: 250,
+		require: path => Promise.resolve(require(path)),
 		paths: [
 			`${__dirname}/examples/**/*.agent.js`,
 			'!node_modules',
@@ -173,39 +174,43 @@ function Agents(options) {
 		Promise.resolve()
 			.then(()=> glob(agents.settings.paths, {ignore: ['node_modules']}))
 			.then(paths => {
-				var seenAgents = new Set();
+				var loadedAgents = {};
 
-				return agents._agents = _(paths)
-					.map(path => {
-						try {
-							return _.set(require(path), 'path', path);
-						} catch (e) {
-							agents.emit('refreshWarn', `Failed to parse "${path}" - ${e.toString()}`);
-						}
-					})
-					.filter() // Remove failed modules
-					.map(mod => _.defaults(mod, agents.settings.agentDefaults))
-					.filter(mod => {
-						var missing = ['id', 'hasReturn', 'worker']
-							.filter(f => !_.has(mod, f));
-
-						if (seenAgents.has(mod.id)) {
-							agents.emit('refreshWarn', mod.path, `has duplicate id "${mod.id}" - skipped`);
-							return false;
-						} else if (missing.length) {
-							agents.emit('refreshWarn', mod.path, `file does not have the required keys ${missing.map(m => `"${m}"`).join(', ')} (or maybe look like a valid agent?) - skipped`);
-							return false;
-						} else {
-							seenAgents.add(mod.id);
-							return true;
-						}
-					})
-					.mapKeys(mod => mod.id)
-					.mapValues(mod => mod)
-					.value()
+				return Promise.all(paths
+					.map(path => agents.require(path)
+						.then(mod => {
+							if (!mod) {
+								agents.emit('refreshWarn', `Error loading agent path "${path}" - skipping`);
+							} else if (!mod.id) {
+								agents.emit('refreshWarn', `Agent at path "${path}" does not contain an ID property - skipping`);
+							} else if (loadedAgents[mod.id]) {
+								agents.emit('refreshWarn', path, `has duplicate id "${mod.id}" - skipped`);
+							} else {
+								loadedAgents[mod.id] = _.defaultsDeep(_.toPlainObject(mod), agents.settings.agentDefaults);
+							}
+						})
+					)
+				)
+					.then(()=> agents._agents = loadedAgents)
 			})
 			// }}}
 			.then(()=> agents.emit('refresh', _.keys(agents._agents).sort()))
+
+
+	/**
+	* Wrapper around settings.require that promisifies the output
+	* @param {string} path The module path to include
+	* @returns {Promise<Object>} The eventual imported module espec object
+	*/
+	agents.require = path => {
+		var loadedMod;
+		try {
+			loadedMod = agents.settings.require(path);
+		} catch (e) {
+			agents.emit('refreshWarn', `Failed to parse "${path}" - ${e.toString()}`);
+		}
+		return Promise.resolve(loadedMod);
+	};
 
 
 	/**
@@ -363,19 +368,17 @@ function Agents(options) {
 			})
 			// }}}
 			// Create base session object {{{
-			.then(()=> {
-				return {
-					agent: id,
-					agentSettings,
-					cacheKey: settings.cacheKey || agents.getKey(id, agentSettings),
-					runner: false,
-					cache: false,
-					startTime: Date.now(),
-					worker: agents._agents[id],
-					settings: agents.settings,
-					defer: agents.createDefer(),
-				};
-			})
+			.then(()=> ({
+				agent: id,
+				agentSettings,
+				cacheKey: settings.cacheKey || agents.getKey(id, agentSettings),
+				runner: false,
+				cache: false,
+				startTime: Date.now(),
+				worker: agents._agents[id],
+				settings: agents.settings,
+				defer: agents.createDefer(),
+			}))
 			// }}}
 			// Determine runner {{{
 			.then(session => {
