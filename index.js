@@ -74,7 +74,7 @@ function Agents(options) {
 			calculate: session => 'inline',
 			pm2: {
 				procName: cacheKey => cacheKey,
-				execFile: `${__dirname}/run-agent`,
+				execFile: `${__dirname}/agents.js`,
 				execFileInterpreter: 'node',
 				execFileInterpreterArgs: ['--max-old-space-size=12288'],
 				cwd: __dirname,

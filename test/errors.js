@@ -103,7 +103,7 @@ describe('Catching errors from within an agent', function() {
 
 			setTimeout(()=> {
 				mlog.log('Run: kill');
-				exec('bash -c "ps -aeo \'%p,%a\' | grep run-agent | cut -d, -f1 | xargs kill"');
+				exec('bash -c "ps -aeo \'%p,%a\' | grep agents.js | cut -d, -f1 | xargs kill"');
 			}, 250); // Kill agent process after 250ms
 		});
 
