@@ -29,9 +29,10 @@ var crypto = require('crypto');
 var cronTranslate = require('cronstrue').toString;
 var debug = require('debug')('agents:core');
 var eventer = require('@momsfriendlydevco/eventer');
-var scheduler = require('@momsfriendlydevco/scheduler');
 var fspath = require('path');
 var glob = require('globby');
+var inclusion = require('inclusion');
+var scheduler = require('@momsfriendlydevco/scheduler');
 var timestring = require('timestring');
 var util = require('util');
 
@@ -43,7 +44,7 @@ function Agents(options) {
 		autoInstall: true,
 		allowImmediate: true,
 		logThrottle: 250,
-		require: path => Promise.resolve(require(path)),
+		require: path => inclusion(path),
 		paths: [
 			`${__dirname}/examples/**/*.agent.js`,
 			'!node_modules',
@@ -202,15 +203,13 @@ function Agents(options) {
 	* @param {string} path The module path to include
 	* @returns {Promise<Object>} The eventual imported module espec object
 	*/
-	agents.require = path => {
-		var loadedMod;
-		try {
-			loadedMod = agents.settings.require(path);
-		} catch (e) {
+	agents.require = path => Promise.resolve()
+		.then(()=> agents.settings.require(path))
+		.then(mod => mod.default || mod) // Use either the provided module default export (ESM) or the full thing (CJS)
+		.catch(e => {
+			debug(`Mod require of "${path}" threw`, e);
 			agents.emit('refreshWarn', `Failed to parse "${path}" - ${e.toString()}`);
-		}
-		return Promise.resolve(loadedMod);
-	};
+		}),
 
 
 	/**
