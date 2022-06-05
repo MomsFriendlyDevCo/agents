@@ -2,6 +2,15 @@
 =========================
 Deferred async job scheduler and runner for local or remote batch queues.
 
+Features:
+
+* Run background jobs periodically, as required or with use-cache-or-rerun methods
+* Supports multiple runners
+* Can be used in JavaScript as a module or from the command line as a runner
+* Supports both CJS and ESM modules by default
+
+
+
 ```javascript
 var Agents = require('@momsfriendlydevco/agents');
 
@@ -30,18 +39,49 @@ agents.get('primes', {limit: 1e6}, {want: 'session'})
 
 ESM / ES6 compatibility
 -----------------------
-The `require` method can be overloaded to usse a third party module to pre-compile ESM momdules to CJS:
+This module is CJS and ESM compatible by default via the [Inclusion](https://github.com/davidmarkclements/inclusion) transpiler.
+
+However if a newer require system is required, the `require` option can be overloaded to use a third party module to pre-compile ESM modules to CJS:
 
 ```javascript
 var agents = new Agents({
-	autoInstall: false,
-	require: path => inclusion(path) // Use the inclusion NPM to convert ESM modules to CJS before use
-		.then(mod => mod.default || mod), // use `default` as Agent object or the entire export structure
-	paths: [
-		`${__dirname}/../examples/*.mjs`,
-	],
+	require: path => myCustomRequire(path)
+		.then(mod => mod.default || mod), // Other cleanup methods when done
 });
 ```
+
+
+Adding agents to package.json
+-----------------------------
+Add the agent binary command to your package.json:
+
+```json
+{
+  "name": "abi-ims",
+  "version": "0.0.0",
+  "description": "Inventory Management Sub-system for ABI",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "agents": "agents -l",
+    "agents:mintProductsDelta": "agents myAgentToRun --command-line-options"
+  },
+  "agents": {
+    "paths": [
+      "./agents/*.js"
+    ],
+    "runner": {
+      "modules": [
+        "pm2",
+        "inline"
+      ]
+    }
+  }
+}
+```
+
+The above maps `npm run agents` to listing the available agents within a project, `run run agents:mintProductsDelta` runs a specific agent with the specified command line.
+The `agents` branch contains the various defaults the agent binary will use when executing such as the default paths to search and the runners to use.
 
 
 Module API
