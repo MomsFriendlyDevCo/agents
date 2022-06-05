@@ -22,7 +22,6 @@
 
 var _ = require('lodash').mixin(require('lodash-keyarrange'));
 var argy = require('argy');
-var async = require('async-chainable');
 var Cache = require('@momsfriendlydevco/cache');
 var colors = require('chalk');
 var crypto = require('crypto');
