@@ -28,12 +28,10 @@ var crypto = require('crypto');
 var cronTranslate = require('cronstrue').toString;
 var debug = require('debug')('agents:core');
 var eventer = require('@momsfriendlydevco/eventer');
-var fspath = require('path');
 var glob = require('globby');
 var inclusion = require('inclusion');
 var scheduler = require('@momsfriendlydevco/scheduler');
 var timestring = require('timestring');
-var util = require('util');
 
 function Agents(options) {
 	var agents = this;
