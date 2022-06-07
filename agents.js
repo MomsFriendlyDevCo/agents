@@ -32,6 +32,7 @@ var util = require('util');
 
 var agentInitSettings = {
 	autoInstall: false, // Don't set up Cron tasks
+	allowImmediate: false, // Dont run (other) immediate agents
 };
 
 program
