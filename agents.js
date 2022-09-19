@@ -31,15 +31,14 @@ var timestring = require('timestring');
 var util = require('util');
 
 var command = new Commander.Command();
-var program = commanderExtras(command); // Mutate only our custom command
+var commander = commanderExtras(command); // Mutate only our custom command
 
 var agentInitSettings = {
 	autoInstall: false, // Don't set up Cron tasks
 	allowImmediate: false, // Dont run (other) immediate agents
 };
 
-program
-	.version(require('./package.json').version)
+var program = commander.version(require('./package.json').version)
 	.usage('[-d] [-r runner] [-c cache] [-o setting=value...] <agent-id>')
 	.option('-l, --list', 'List all available agents')
 	.option('-e, --enclose', 'Dont return errors, instead wrap the error inside the return value (implied when using the env AGENT)')
