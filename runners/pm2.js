@@ -72,7 +72,7 @@ module.exports = {
 							case 'launching':
 							case 'online': // Still running - wait and try again
 								session.context.log('Waiting for PM2 process', colors.cyan(this.procName), 'to complete', colors.grey(readable.relativeTime(startTick)));
-								setTimeout(checkProcess, 1000);
+								setTimeout(checkProcess, session.settings.checkProcess);
 								break;
 							case 'stopping':
 							case 'stopped':
@@ -168,7 +168,7 @@ module.exports = {
 						}
 					});
 				};
-				setTimeout(checkProcess, 1000);
+				setTimeout(checkProcess, session.settings.checkProcess);
 			})
 			// }}}
 			.parallel({

@@ -8,6 +8,7 @@
 * @param {boolean} [options.autoInit=false] Automatically run `agents.init()` when setting up, NOTE: This is disabled by default because some runners / caches need setting up via async
 * @param {boolean} [options.autoInstall=true] Whether any discovered agents should be installed as a cronjob
 * @param {boolean} [options.allowImmediate=true] Allow any agent marked as 'immediate' to run whehn registering
+* @param {number} [options.checkProcess=1000] How long to pause between checking agent progress
 * @param {number} [options.logThrottle=250] How long to pause between agent context logThrottled updates
 *
 * @example In the widgets.agents.js file
@@ -40,6 +41,7 @@ function Agents(options) {
 		autoInit: false,
 		autoInstall: true,
 		allowImmediate: true,
+		checkProcess: 1000,
 		logThrottle: 250,
 		require: path => inclusion(path),
 		paths: [
