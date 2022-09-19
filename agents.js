@@ -23,12 +23,15 @@ var fs = require('fs');
 var fsPath = require('path');
 var os = require('os');
 var spawn = require('child_process').spawn;
-var program = require('commander');
-require('commander-extras');
+var Commander = require('commander');
+var commanderExtras = require('commander-extras');
 var readable = require('@momsfriendlydevco/readable');
 var Table = require('cli-table3');
 var timestring = require('timestring');
 var util = require('util');
+
+var command = new Commander.Command();
+var program = commanderExtras(command); // Mutate only our custom command
 
 var agentInitSettings = {
 	autoInstall: false, // Don't set up Cron tasks
