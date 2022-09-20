@@ -1,6 +1,6 @@
 {
   "name": "@momsfriendlydevco/agents",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Deferred async job scheduler and runner for local or remote batch queues",
   "main": "index.js",
   "scripts": {
