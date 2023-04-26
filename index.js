@@ -251,6 +251,15 @@ function Agents(options) {
 						})
 				);
 			})
+			.then(()=> {
+				if (agents.settings?.scheduler) {
+					scheduler.settings = {
+						...scheduler.settings,
+						...agents.settings.scheduler, // Overload default settings
+					};
+					debug('Applied scheduler settings', scheduler.settings);
+				}
+			})
 			.then(()=> scheduler.start())
 			.then(()=> agents.emit('ready'))
 			.then(()=> this)
