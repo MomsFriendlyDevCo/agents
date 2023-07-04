@@ -61,6 +61,7 @@ describe('Catching errors from within an agent', function() {
 				})
 		);
 
+		// FIXME: Fragile test, timing can be off
 		it('should error if the process gets stopped in PM2', done => {
 			agents.run('errors', {wait: 3000}, {runner: 'pm2'})
 				.then(()=> done(new Error('should not be successful')))

@@ -45,6 +45,7 @@ describe('Ensuring scheduling is queued', function() {
 		);
 	});
 
+	// FIXME: Fragile test, timing can be off
 	it('should have a result once triggered', async ()=> {
 		var init0 = await agents.getSize('timed0');
 		expect(init0).to.be.undefined;
