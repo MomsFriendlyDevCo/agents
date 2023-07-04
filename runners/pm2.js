@@ -74,6 +74,8 @@ module.exports = {
 								session.context.log('Waiting for PM2 process', colors.cyan(this.procName), 'to complete', colors.grey(readable.relativeTime(startTick)));
 								setTimeout(checkProcess, session.settings.checkProcess);
 								break;
+
+							case 'waiting restart': // NOTE: Should not be occuring during normal operation as we disable "autorestart"
 							case 'stopping':
 							case 'stopped':
 								var exitCode = _.get(proc, '0.pm2_env.exit_code', 0);
