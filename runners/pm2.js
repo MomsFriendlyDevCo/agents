@@ -26,7 +26,7 @@ module.exports = {
 					if (err || !proc || !proc.length || _.isEqual(proc, [[]]) || _.isEqual(proc, [])) return next(); // Process doesn't exist - continue on
 					var status = _.get(proc, '0.pm2_env.status');
 					session.context.warn('Process', colors.cyan(this.procName), 'already exists and has the status', colors.cyan(status), 'terminating...');
-					pm2.delete(this.procName, ()=> next());
+					pm2.delete(this.procName, ()=> next()); // FIXME: What happens in the case of an error? Remove "async-chainable" and use native promises with a "catch" block?
 				});
 			})
 			// }}}
