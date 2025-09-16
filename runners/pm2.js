@@ -35,7 +35,7 @@ module.exports = {
 				session.context.log('Spawning PM2 process', colors.cyan(this.procName));
 				pm2.start(session.settings.runner.pm2.execFile, {
 					name: this.procName,
-					args: [],
+					args: _.has(session.settings.runner.pm2, 'args') ? session.settings.runner.pm2.args : [],
 					cwd: session.settings.runner.pm2.cwd,
 					env: session.settings.runner.pm2.env(session),
 					autorestart: false,
